@@ -29,9 +29,21 @@ diamond makedb --in all_refseq_proteins.faa -d refseq_proteins
 
 Then use script Refseq.blastx.best.sh  - the best hits are saved as refseq_best_hits.txt
  
+Against NR:
+Download the database
+update_blastdb.pl --decompress nr
 
+Create a database:
+makeblastdb -in nr_viridiplantae.fasta -dbtype prot -out nr_viridiplantae_db
 
+Confirm the database is functional:
+blastdbcmd -db nr -info
 
+Move it inti separate folder:
+mkdir viridiplantae_db
+mv nr_viridiplantae* viridiplantae_db/
+
+Then use script NR_anno.sh  - the best hits are saved as nr_best_hits.txt
 
 KEGG pathway annotation was performed using https://www.genome.jp/kaas-bin/kaas_main
 Protein sequencies were send with parameters:
