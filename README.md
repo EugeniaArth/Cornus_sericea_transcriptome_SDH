@@ -11,13 +11,13 @@ First split fasta into batches:
 
 Download the UniProt Plant Protein Database
 
-```wget "https://rest.uniprot.org/uniprotkb/stream?compressed=true&format=fasta&query=taxonomy_id:33090 AND reviewed:true" -O uniprot_plants_reviewed.fasta.gz
+```wget "https://rest.uniprot.org/uniprotkb/stream?compressed=true&format=fasta&query=taxonomy_id:33090 AND reviewed:true" -O uniprot_plants_reviewed.fasta.gz ```
 
-gunzip uniprot_plants_reviewed.fasta.gz``` 
+```gunzip uniprot_plants_reviewed.fasta.gz``` 
 
 Create a Uniprot  Database
 
-`makeblastdb -in uniprot_plants_reviewed.fasta -dbtype prot -out uniprot_plants_db`
+```makeblastdb -in uniprot_plants_reviewed.fasta -dbtype prot -out uniprot_plants_db```
 
 Then use script Uniprot.blastx.best.sh - the best hits are saved as uniprot_best_hits
 
