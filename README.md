@@ -11,9 +11,12 @@ First split fasta into batches:
 
 Download the UniProt Plant Protein Database
 
-```wget "https://rest.uniprot.org/uniprotkb/stream?compressed=true&format=fasta&query=taxonomy_id:33090 AND reviewed:true" -O uniprot_plants_reviewed.fasta.gz ```
+```bash
+wget "https://rest.uniprot.org/uniprotkb/stream?compressed=true&format=fasta&query=taxonomy_id:33090 AND reviewed:true" \
+  -O uniprot_plants_reviewed.fasta.gz
 
-```gunzip uniprot_plants_reviewed.fasta.gz``` 
+gunzip uniprot_plants_reviewed.fasta.gz
+``` 
 
 Create a Uniprot  Database
 
@@ -26,9 +29,13 @@ Then use script Uniprot.blastx.best.sh - the best hits are saved as uniprot_best
 
 Download the Refseq Plant Protein Database
 
-```wget -r -nd -A "*.protein.faa.gz" ftp://ftp.ncbi.nlm.nih.gov/refseq/release/plant/
+```bash
+wget -r -nd -A "*.protein.faa.gz" ftp://ftp.ncbi.nlm.nih.gov/refseq/release/plant/
+
 gunzip *.protein.faa.gz      # Unzips all
-cat *.protein.faa > all_refseq_proteins.faa```
+
+cat *.protein.faa > all_refseq_proteins.faa
+```
 
 Create a Refseq  Database:
 
