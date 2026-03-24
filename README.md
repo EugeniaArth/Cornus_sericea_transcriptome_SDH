@@ -5,7 +5,9 @@ Transcriptome assembly and functional annotation of Cornus sericea, with a focus
 
 First split fasta into batches:
 
-```seqkit split -s 15 final.clust_transcripts_longest_iso.fasta -O split_batches```
+```bash
+seqkit split -s 15 final.clust_transcripts_longest_iso.fasta -O split_batches
+```
 
 - Against UniProt:
 
@@ -20,7 +22,10 @@ gunzip uniprot_plants_reviewed.fasta.gz
 
 Create a Uniprot  Database
 
-```makeblastdb -in uniprot_plants_reviewed.fasta -dbtype prot -out uniprot_plants_db```
+```bash
+makeblastdb -in uniprot_plants_reviewed.fasta -dbtype prot -out uniprot_plants_db
+
+```
 
 Then use script Uniprot.blastx.best.sh - the best hits are saved as uniprot_best_hits
 
@@ -39,23 +44,36 @@ cat *.protein.faa > all_refseq_proteins.faa
 
 Create a Refseq  Database:
 
-```diamond makedb --in all_refseq_proteins.faa -d refseq_proteins```
+```bash
+diamond makedb --in all_refseq_proteins.faa -d refseq_proteins
+
+```
 
 Then use script Refseq.blastx.best.sh  - the best hits are saved as refseq_best_hits.txt
  
 Against NR:
 Download the database
+```bash
 update_blastdb.pl --decompress nr
 
-Create a database:
-makeblastdb -in nr_viridiplantae.fasta -dbtype prot -out nr_viridiplantae_db
+```
 
+Create a database:
+```bash
+makeblastdb -in nr_viridiplantae.fasta -dbtype prot -out nr_viridiplantae_db
+```
 Confirm the database is functional:
+```bash 
 blastdbcmd -db nr -info
 
-Move it inti separate folder:
+```
+
+Move it in separate folder:
+
+```bash 
 mkdir viridiplantae_db
 mv nr_viridiplantae* viridiplantae_db/
+```
 
 Then use script NR_anno.sh  - the best hits are saved as nr_best_hits.txt
 
