@@ -1,15 +1,17 @@
 # Cornus_sericea_transcriptome_SDH
 Transcriptome assembly and functional annotation of Cornus sericea, with a focus on identifying and characterizing shikimate dehydrogenase (SDH) enzymes.
 
-ANNOTATION
+**ANNOTATION**
 
 First split fasta into batches:
-seqkit split -s 15 final.clust_transcripts_longest_iso.fasta -O split_batches
+```seqkit split -s 15 final.clust_transcripts_longest_iso.fasta -O split_batches```
 
-Against UniProt:
+- Against UniProt:
+
 Download the UniProt Plant Protein Database
-wget "https://rest.uniprot.org/uniprotkb/stream?compressed=true&format=fasta&query=taxonomy_id:33090 AND reviewed:true" -O uniprot_plants_reviewed.fasta.gz
-gunzip uniprot_plants_reviewed.fasta.gz 
+```wget "https://rest.uniprot.org/uniprotkb/stream?compressed=true&format=fasta&query=taxonomy_id:33090 AND reviewed:true" \
+-O uniprot_plants_reviewed.fasta.gz```
+```gunzip uniprot_plants_reviewed.fasta.gz``` 
 
 Create a Uniprot  Database
 makeblastdb -in uniprot_plants_reviewed.fasta -dbtype prot -out uniprot_plants_db
