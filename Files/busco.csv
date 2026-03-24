@@ -1,0 +1,19 @@
+﻿type;data;db
+Complete BUSCOs;2057;Eudicots
+Complete and single-copy BUSCOs;1989;Eudicots
+Complete and duplicated BUSCOs ;68;Eudicots
+Fragmented BUSCOs;124;Eudicots
+Missing BUSCOs;145;Eudicots
+Total BUSCO;2326;Eudicots
+Complete BUSCOs;231;Eukaryota
+Complete and single-copy BUSCOs;200;Eukaryota
+Complete and duplicated BUSCOs ;31;Eukaryota
+Fragmented BUSCOs;12;Eukaryota
+Missing BUSCOs;12;Eukaryota
+Total BUSCO;255;Eukaryota
+Complete BUSCOs;384;Viridiplantae
+Complete and single-copy BUSCOs;378;Viridiplantae
+Complete and duplicated BUSCOs ;6;Viridiplantae
+Fragmented BUSCOs;28;Viridiplantae
+Missing BUSCOs;13;Viridiplantae
+Total BUSCO;425;Viridiplantae
