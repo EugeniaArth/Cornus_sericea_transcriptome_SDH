@@ -1,0 +1,434 @@
+---
+title: "Cornus transcriptome"
+author: "Eugenia Nikonorova"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(ggpubr)
+library(dplyr)
+```
+
+```{r, , error=FALSE, warning=FALSE }
+busco <- read.csv("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/working_dir/busco.csv", head=TRUE, dec = ".", sep=";", stringsAsFactors=FALSE)
+busco$type <- as.factor(busco$type)
+busco$db <- as.factor(busco$db)
+
+install.packages("paletteer")
+library(paletteer)
+
+ggplot(data=busco, aes(x = db, y = data, fill = type)) +
+geom_bar(stat="identity", position=position_dodge()) +
+  theme_classic() +
+  theme(legend.position="bottom") +
+  labs(fill = "") +
+  theme(axis.title.x = element_blank(),
+  axis.title.y = element_blank()) +
+  geom_text(aes(label=data), position = position_dodge(1.0), vjust=-1.0, color="black", size=3.5) + 
+  paletteer::scale_fill_paletteer_d("colorBlindness::paletteMartin")
+  #scale_color_manual(values = c("f47068", "ffb3ae", "fff4f1", "1697a6", "0e606b", "ffc24b"))
+  #scale_fill_grey(start = 0, end = 0.7)
+  #scale_fill_brewer(palette="Greys")
+  #theme(axis.text.x = element_text(size=12, angle=45))
+
+ 
+```
+Analyse GO annotation and create a figure
+
+```{r, error=FALSE, warning=FALSE }
+
+library(tidyverse)
+library(ggplot2)
+
+go_df <- read.csv("/Users/eugenianikonorova/Desktop/Work/Cornus_sericea_transcriptome_SDH/Files/GO_terms_highest_level_per_transcript.csv")
+
+# === Count number of genes per GO term and ontology ===
+go_summary <- go_df %>%
+  group_by(Ontology, GO_name) %>%
+  summarise(NumGenes = n_distinct(Transcript_ID), .groups = "drop")
+
+# === Optional: Keep only top N terms per ontology ===
+top_go <- go_summary %>%
+  group_by(Ontology) %>%
+  slice_max(order_by = NumGenes, n = 15) %>%  # <- adjust N if needed
+  ungroup()
+
+# Plot GO terms by function  - one variant of plot
+ggplot(top_go, aes(x = reorder(GO_name, NumGenes), y = NumGenes, fill = Ontology)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  coord_flip() +
+  labs(
+    title = "Gene Function Classification (GO)",
+    x = "GO Term",
+    y = "Number of Genes"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 12),
+    legend.position = "top"
+  )
+
+# Best variant (for paper and diploma)
+ggdotchart(top_go, x = "GO_name", y = "NumGenes",
+           color = "Ontology",                                # Color by groups
+          # palette = c("#00AFBB", "#E7B800", "#FC4E07"), # Custom color palett                      # Sort value in descending order
+           add = "segments",                             # Add segments from y = 0 to dots
+           rotate = TRUE,                                # Rotate vertically
+           group = "Ontology",
+            label = top_go$NumGenes, 
+           dot.size = 6,                                 # Large dot size
+           font.label = list(color = "black", size = 9, 
+                             vjust = 0.5),               # Adjust label parameters
+           ggtheme = theme_pubr()                        # ggplot2 theme
+           ) +
+  labs(title = "Gene Function Classification (GO)",
+          x = "",
+          y = "") +
+  theme(legend.position = c(0.7, 0.9))
+
+
+ggsave("GO_ontology_barplot.png", width = 9, height = 10, dpi = 300)
+
+
+```
+
+
+```{r, error=FALSE, warning=FALSE }
+library(ggplot2)
+library(dplyr)
+library(stringr)
+
+# Read your KEGG analysis data
+kegg_data <- readLines("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/Cornus_transcriptome/Annotation/gff3_annotation/KEGG_pathways.txt")
+
+# Extract groups, descriptors, and counts
+groups <- c()
+descriptors <- c()
+counts <- c()
+current_group <- NA
+
+for (line in kegg_data) {
+  line <- str_replace_all(line, "[\u00A0\u200B\uFFFD]", " ")  # Replace special chars with regular spaces
+  line <- str_squish(line)  # Remove extra spaces
+
+  if (!str_detect(line, "\\(")) {
+    current_group <- line
+  } else {
+    line_clean <- str_replace(line, "^\\d+\\s+", "")
+    
+    descriptor <- str_trim(str_extract(line_clean, "^.*(?=\\s\\()"))
+    count <- as.numeric(str_extract(line_clean, "(?<=\\()\\d+(?=\\))"))
+    
+    groups <- c(groups, current_group)
+    descriptors <- c(descriptors, descriptor)
+    counts <- c(counts, count)
+  }
+}
+
+
+
+# Create dataframe
+kegg_df <- data.frame(Group = groups, Descriptor = descriptors, Count = counts)
+kegg_df$Group <- as.factor(kegg_df$Group)
+kegg_df$Descriptor <- as.factor(kegg_df$Descriptor)
+
+
+# Top 30 Descriptors
+top_kegg_df <- kegg_df %>% 
+  arrange(desc(Count)) %>% 
+  slice_head(n = 30)
+
+ggplot(top_kegg_df, aes(x = reorder(Descriptor, Count), y = Count, fill = Group)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  coord_flip() +
+  theme_bw() +
+  labs(title = "Top 30 KEGG Pathway Annotations",
+       x = "KEGG Descriptor",
+       y = "Number of Genes") +
+  theme(axis.text.y = element_text(size = 8, face = "bold"),
+        axis.title = element_text(size = 12, face = "bold"),
+        legend.title = element_blank(),
+        legend.position = "right",
+        plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+
+# Add the Class column based on row indices
+kegg_df$Class <- NA
+
+kegg_df$Class[1:146] <- "Metabolism"
+kegg_df$Class[147:175] <- "Genetic Information Processing"
+kegg_df$Class[176:212] <- "Environmental Information Processing"
+kegg_df$Class[213:247] <- "Cellular Processes"
+kegg_df$Class[248:336] <- "Organismal Systems"
+kegg_df$Class[337:426] <- "Human Diseases"
+
+# Verify
+head(kegg_df, 150)
+table(kegg_df$Class)
+
+# Summarize counts by Class and Group
+summary_df <- kegg_df %>%
+  group_by(Class, Group) %>%
+  summarise(Total_Count = sum(Count)) %>%
+  ungroup()
+
+# Order groups by Class and Total_Count
+summary_df <- summary_df %>%
+  group_by(Class) %>%
+  arrange(Class, Total_Count) %>%
+  mutate(Group = factor(Group, levels = unique(Group))) %>%
+  ungroup()
+
+# Plot with improved readability
+ggplot(summary_df, aes(x = Total_Count, y = reorder(Group, Total_Count), fill = Class)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  facet_grid(Class ~ ., scales = "free_y", space = "free_y") +
+  theme_bw() +
+  labs(title = "KEGG Pathways - Total Counts per Group and Class",
+       x = "Total Number of Genes",
+       y = "KEGG Group") +
+  theme(axis.text.y = element_text(size = 8, face = "bold"),
+        axis.title = element_text(size = 12, face = "bold"),
+        strip.text = element_text(size = 10, face = "bold"),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+
+
+ggdotchart(summary_df, x = "Group", y = "Total_Count",
+           color = "Class",                                # Color by groups
+          # palette = c("#00AFBB", "#E7B800", "#FC4E07"), # Custom color palett                      # Sort value in descending order
+           add = "segments",                             # Add segments from y = 0 to dots
+           rotate = TRUE,                                # Rotate vertically
+           group = "Class",
+            label = summary_df$Total_Count, 
+           dot.size = 6,                                 # Large dot size
+           font.label = list(color = "black", size = 9, 
+                             vjust = 0.5),  
+          legend.title = "", 
+           ggtheme = theme_pubr()                        # ggplot2 theme
+           ) +
+  labs(title = "KEGG Pathway annotation",
+          x = "",
+          y = "") +
+   theme(legend.position = c(0.7, 0.9))
+
+ggsave("KEGG_plot.png", width = 10, height = 10, dpi = 300)
+
+
+class_totals <- kegg_df %>%
+  group_by(Class) %>%
+  summarise(Total_Count = sum(Count)) %>%
+  arrange(desc(Total_Count))
+
+kegg_df %>%
+  summarise(Total_Count = sum(Count)) %>%
+  arrange(desc(Total_Count))
+sum(kegg_df$Count, na.rm = TRUE)
+
+
+print(class_totals)
+
+```
+
+
+Count annotions
+
+```{python}
+
+annotated_gff = "/Users/eugenianikonorova/Desktop/Work/Cornus_sericea_transcriptome_SDH/Files/annotated_final.gff3"  # your updated GFF3
+
+# ---------------------------
+# Counters
+# ---------------------------
+counters = {
+    'mRNA_total': 0,
+    'UniProt_best_hit': 0,
+    'RefSeq_best_hit': 0,
+    'NR_best_hit': 0,
+    'EggNOG_best_hit': 0,
+    'KEGG_KO': 0,
+    'Ontology_term': 0,
+    'any_protein_hit': 0  # counts if UniProt, RefSeq, or NR exists
+}
+
+# ---------------------------
+# Parse GFF3
+# ---------------------------
+with open(annotated_gff, 'r') as infile:
+    for line in infile:
+        if line.startswith('#') or line.strip() == '':
+            continue
+
+        parts = line.strip().split('\t')
+        feature_type = parts[2]
+        attributes = parts[8]
+
+        if feature_type != 'mRNA':
+            continue
+
+        counters['mRNA_total'] += 1
+
+        attr_dict = {}
+        for field in attributes.split(';'):
+            if '=' in field:
+                key, value = field.split('=', 1)
+                attr_dict[key] = value.strip()
+
+        # Count individual annotation types
+        for key in ['UniProt_best_hit', 'RefSeq_best_hit', 'NR_best_hit', 'EggNOG_best_hit', 'KEGG_KO', 'Ontology_term']:
+            if key in attr_dict and attr_dict[key] != '':
+                counters[key] += 1
+
+        # Count any protein hit once per transcript
+        if any(attr_dict.get(k) for k in ['UniProt_best_hit', 'RefSeq_best_hit', 'NR_best_hit']):
+            counters['any_protein_hit'] += 1
+
+# ---------------------------
+# Print summary
+# ---------------------------
+print("mRNA annotation summary:")
+for k, v in counters.items():
+    print(f"{k}: {v}")
+    
+```
+
+
+Sum of annotation results
+
+```{r}
+# Create vectors
+category <- c(
+              "UniProt", 
+              "RefSeq", 
+              "NCBI NR", 
+              "KEGG", 
+              "GO", 
+              "Unannotated")
+
+count <- c(19496, 26681, 26903, 12326, 12766, 2372)
+
+# Create data frame
+anno_Cser <- data.frame(Category = category, Count = count)
+
+
+ggbarplot(anno_Cser , x = "Category", y = "Count", 
+           ylab = "Number of transcripts",  xlab = "", title = "") +
+  geom_text(aes(label=Count), color="black",
+            position=position_dodge(width=0.9), vjust=-0.25, hjust=0.5, size=3.5) +
+  theme( legend.position = "none")
+```
+
+
+
+```{r}
+#phylogenetic tree
+BiocManager::install("ggtree")
+library(ggtree)
+tree <- read.tree("~/Desktop/Work/Plant_sequencing/SDH_prot_seq/clustal_omega_aln-fasta.contree")
+ggtree(tree)
+
+
+info <- read.csv("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/SDH_prot_seq/info.csv", sep=";", header=TRUE)
+info$GA <- as.factor(info$GA)
+info$Substrate <- as.factor(info$Substrate)
+
+ggtree(tree) %<+% info +
+  geom_tippoint(aes(color=GA),  size=1.5) +
+#geom_text(aes(label=node), hjust=-.3) +
+  geom_tiplab(size=3, hjust= -0.1) +
+ geom_label2(aes(x=branch, label=Substrate), size=0.2) 
+ 
+
+install.packages("TDbook")
+install.packages("ggmsa")
+library(TDbook)
+library(treeio)
+
+AA_sequence <- read.fasta("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/SDH_prot_seq/clustal_omega_aln-fasta", type = "AA")
+p <- ggtree(tree) + geom_tiplab(size=3)
+msaplot(p, AA_sequence, offset=3, width=2)
+
+ggtree(tree) %<+% info +
+  geom_tippoint(aes(color=GA),  size=1.5) +
+  geom_tiplab(size=3, hjust= -0.1) +
+geom_label2(aes(x=branch, label=Substrate), size=0.2) 
+
+
+tree <- read.tree("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/SDH_prot_seq/Multiple_alignment.aln.contree")
+ggtree (tree) + 
+  #geom_tiplab(size=4) +
+#  geom_label2(aes(label=label))
+geom_text(aes(label=label), hjust=-.3)
+  
+```
+
+
+
+
+
+```{r}
+library(ggmsa)
+library(Biostrings)
+
+protein_sequences <- readAAStringSet("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/SDH_prot_seq/clustal_omega_aln-fasta")
+protein_sequences <- readAAStringSet("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/subset_alignment.fasta")
+#protein_sequences <- readAAStringSet("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/SDH_prot_seq/Multiple_alignment.fa")
+
+DQD_domain <- c(124, 126, 128, 155, 214, 241, 269, 271, 279, 291, 304)
+# For each sequence, extract amino acids at positions 5, 9, 15
+# Define valid amino acids (1-letter codes)
+valid_aa <- "ACDEFGHIKLMNPQRSTVWY"
+# Extract amino acids at those positions for each sequence
+aa_sites <- lapply(protein_sequences, function(x) {
+  s <- as.character(x)
+  aa <- substring(s, DQD_domain, DQD_domain)
+  paste0(aa, collapse = "")
+})
+
+SDH_domain <- c(336, 338, 381, 385, 406, 407,421, 422, 423, 550, 578, 582)
+# For each sequence, extract amino acids at positions 5, 9, 15
+# Define valid amino acids (1-letter codes)
+valid_aa <- "ACDEFGHIKLMNPQRSTVWY"
+# Extract amino acids at those positions for each sequence
+aa_sites <- lapply(protein_sequences, function(x) {
+  s <- as.character(x)
+  aa <- substring(s, SDH_domain, SDH_domain)
+  paste0(aa, collapse = "")
+})
+
+NRT_domain <- c(483,484, 485, 488, 522, 523)
+# For each sequence, extract amino acids at positions 5, 9, 15
+# Define valid amino acids (1-letter codes)
+valid_aa <- "ACDEFGHIKLMNPQRSTVWY"
+# Extract amino acids at those positions for each sequence
+aa_sites <- lapply(protein_sequences, function(x) {
+  s <- as.character(x)
+  aa <- substring(s, NRT_domain, NRT_domain)
+  paste0(aa, collapse = "")
+})
+
+
+# Convert to named AAStringSet
+aa_set <- AAStringSet(unlist(aa_sites))
+names(aa_set) <- names(protein_sequences)
+# Save to temp file
+writeXStringSet(aa_set, filepath = "subset_alignment.fasta")
+
+
+
+
+ggmsa(aa_set, color = "Chemistry_AA", 
+      font = "DroidSansMono", char_width = 0.5, seq_name = TRUE)
+ggmsa(aa_set, color = "LETTER", 
+      font = "DroidSansMono", char_width = 0.5, seq_name = TRUE)
+
+ggmsa(aa_set, color = "Shapely_AA", 
+      font = "DroidSansMono", char_width = 0.5, seq_name = TRUE, ref = "AtSDH", consensus_views = T)
+
+
+
+```
+
+
+
