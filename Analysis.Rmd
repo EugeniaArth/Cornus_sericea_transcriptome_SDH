@@ -13,31 +13,64 @@ library(dplyr)
 library(paletteer)
 library(stringr)
 library(ggtree)
+library(reshape2)
+library(viridis)
 ```
 
-```{r, , error=FALSE, warning=FALSE }
-busco <- read.csv("Files/busco.csv", head=TRUE, dec = ".", sep=";", stringsAsFactors=FALSE)
-busco$type <- as.factor(busco$type)
-busco$db <- as.factor(busco$db)
 
 
+```{r}
+library(ggplot2)
 
-ggplot(data=busco, aes(x = db, y = data, fill = type)) +
-geom_bar(stat="identity", position=position_dodge()) +
+busco <- read.csv(
+  "Files/busco.csv",
+  header = TRUE,
+  dec = ".",
+  sep = ";",
+  stringsAsFactors = FALSE
+)
+
+busco$type <- factor(busco$type)
+busco$db   <- factor(busco$db)
+
+p <- ggplot(busco, aes(x = db, y = data, group = type)) +
+  geom_bar(
+    aes(fill = type),
+    stat = "identity",
+    position = position_dodge(width = 0.92),
+    width = 0.85,
+    color = "black",
+    linewidth = 0.3
+  ) +
+  geom_text(
+    aes(label = data),
+    position = position_dodge(width = 0.92),
+    vjust = -0.25,   # ← ключевое исправление
+    size = 3.8,
+    color = "black"
+  ) +
+  scale_fill_grey(start = 0.2, end = 0.9) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.1))  # чтобы было место справа для чисел
+  ) +
+  labs(x = "", y = "", fill = "") +
   theme_classic() +
-  theme(legend.position="bottom") +
-  labs(fill = "") +
-  theme(axis.title.x = element_blank(),
-  axis.title.y = element_blank()) +
-  geom_text(aes(label=data), position = position_dodge(1.0), vjust=-1.0, color="black", size=3.5) + 
-  paletteer::scale_fill_paletteer_d("colorBlindness::paletteMartin")
-  #scale_color_manual(values = c("f47068", "ffb3ae", "fff4f1", "1697a6", "0e606b", "ffc24b"))
-  #scale_fill_grey(start = 0, end = 0.7)
-  #scale_fill_brewer(palette="Greys")
-  #theme(axis.text.x = element_text(size=12, angle=45))
+  theme(
+    legend.position = c(0.98, 0.98),
+    legend.justification = c(1, 1),
+    legend.background = element_rect(fill = "white", color = NA),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+  )
 
- 
+p
+
+ggsave("plots/busco_statistics2.png", plot = p, width = 10, height = 6, dpi = 300)
 ```
+
+
 Analyse GO annotation and create a figure
 
 ```{r, error=FALSE, warning=FALSE }
@@ -323,47 +356,189 @@ ggbarplot(anno_Cser , x = "Category", y = "Count",
 ggsave("plots/Annotation_statistics.png", width = 10, height = 6, dpi = 300)
 ```
 
+DQD/SDH analysis
 
+Sequense identity plot (from matrix after MAFFT alignment)
 
 ```{r}
-#phylogenetic tree
-tree <- read.tree("~/Desktop/Work/Plant_sequencing/SDH_prot_seq/clustal_omega_aln-fasta.contree")
-ggtree(tree)
+
+labels <- c("CserDQD/SDH1.1", "CserDQD/SDH1.2", "CserDQD/SDH2",
+            "CserDQD/SDH3", "CserDQD/SDH4", "CserDQD/SDH5")
+
+# Data matrix of identity for nt sequenses (including gaps, Clustal Omega alignment)
+data_nt <- matrix(c(
+  100, 85, 33, 33, 35, 52,
+  85, 100, 37, 33, 37, 43,
+  33, 37, 100, 69, 71, 59,
+  33, 33, 69, 100, 72, 60,
+  35, 37, 71, 72, 100, 62,
+  52, 43, 59, 60, 62, 100
+), nrow = 6, byrow = TRUE)
+
+rownames(data_nt) <- labels
+colnames(data_nt) <- labels
+
+# Data matrix of identity for prot sequenses (including gaps, Clustal Omega alignment)
+data_pr <- matrix(c(
+  100, 97, 44, 44, 38, 57,
+  97, 100, 45, 45, 39, 58,
+  44, 45, 100, 59, 70, 47,
+  44, 45, 59, 100, 63, 47,
+  38, 39, 70, 63, 100, 43,
+  57, 58, 47, 47, 43, 100
+), nrow = 6, byrow = TRUE)
+
+rownames(data_pr) <- labels
+colnames(data_pr) <- labels
 
 
-info <- read.csv("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/SDH_prot_seq/info.csv", sep=";", header=TRUE)
-info$GA <- as.factor(info$GA)
-info$Substrate <- as.factor(info$Substrate)
-
-ggtree(tree) %<+% info +
-  geom_tippoint(aes(color=GA),  size=1.5) +
-#geom_text(aes(label=node), hjust=-.3) +
-  geom_tiplab(size=3, hjust= -0.1) +
- geom_label2(aes(x=branch, label=Substrate), size=0.2) 
- 
-
-install.packages("TDbook")
-install.packages("ggmsa")
-library(TDbook)
-library(treeio)
-
-AA_sequence <- read.fasta("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/SDH_prot_seq/clustal_omega_aln-fasta", type = "AA")
-p <- ggtree(tree) + geom_tiplab(size=3)
-msaplot(p, AA_sequence, offset=3, width=2)
-
-ggtree(tree) %<+% info +
-  geom_tippoint(aes(color=GA),  size=1.5) +
-  geom_tiplab(size=3, hjust= -0.1) +
-geom_label2(aes(x=branch, label=Substrate), size=0.2) 
+# Melt data
+#data_melt <- melt(data_nt) #or 
+data_melt <- melt(data_pr)
 
 
-tree <- read.tree("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/SDH_prot_seq/Multiple_alignment.aln.contree")
-ggtree (tree) + 
-  #geom_tiplab(size=4) +
-#  geom_label2(aes(label=label))
-geom_text(aes(label=label), hjust=-.3)
-  
+# Save high-resolution figure
+ggsave("sequence_identity_heatmap.png", p, width = 6, height = 5, dpi = 600)
+
+# more light variant
+library(scales)
+# Plot
+p <- ggplot(data_melt, aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "grey85", linewidth = 0.4) +
+  geom_text(aes(label = value), size = 3.2, fontface = "bold") +
+
+  # LIGHT custom gradient
+  scale_fill_gradientn(
+  colours = c("#f7fbff", "#c6dbef", "#6b92d6", "#fddbc7", "#f4a582"),
+  values = scales::rescale(c(10, 40, 60, 80, 100)),
+  limits = c(0, 100),
+  name = "Identity (%)"
+) +
+
+  coord_fixed() +
+
+  theme_classic(base_size = 12) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+    axis.text.y = element_text(size = 10),
+    axis.title = element_blank(),
+    legend.title = element_text(size = 11),
+    legend.text = element_text(size = 9),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.6)
+  )
+
+print(p)
+
+# Save high-resolution figure
+ggsave("plots/sequence_identity_heatmap.png", p, width = 6, height = 5, dpi = 600)
+
 ```
+
+NWK tree as a dendrogram beside the heatmap 
+
+```{r}
+
+library(ape)
+library(gplots)
+
+# 1. Sequence identity matrix
+# for nt - for AA change matrix and mwk tree
+mat <- matrix(c(
+ 100, 97, 44, 44, 38, 57,
+  97, 100, 45, 45, 39, 58,
+  44, 45, 100, 59, 70, 47,
+  44, 45, 59, 100, 63, 47,
+  38, 39, 70, 63, 100, 43,
+  57, 58, 47, 47, 43, 100
+), nrow = 6, byrow = TRUE)
+
+labels <- c(
+  "CserDQD/SDH1.1",
+  "CserDQD/SDH1.2",
+  "CserDQD/SDH2",
+  "CserDQD/SDH3",
+  "CserDQD/SDH4",
+  "CserDQD/SDH5"
+)
+
+rownames(mat) <- labels
+colnames(mat) <- labels
+
+
+nwk <- "(CserDQD/SDH1.1:0.00772569,CserDQD/SDH1.2:0.0211617,((CserDQD/SDH2:0.166335,(CserDQD/SDH3:0.248687,CserDQD/SDH4:0.208442):0.0965437):0.519644,CserDQD/SDH5:0.346317):0.429086);"
+
+tree <- read.tree(text = nwk)
+
+#plot(tree)
+
+# Root the tree using one tip as outgroup
+tree_rooted <- root(
+  tree,
+  outgroup = c("CserDQD/SDH1.1", "CserDQD/SDH1.2"),
+  resolve.root = TRUE
+)
+
+# Optional check
+print(is.rooted(tree_rooted))  # should be TRUE
+#plot(tree_rooted) #Same as unrooted tree
+
+# 3. Make branch lengths suitable for dendrogram conversion
+
+tree_grafen <- compute.brlen(tree_rooted, method = "Grafen")
+
+# Convert phylo -> hclust -> dendrogram
+hc <- as.hclust(tree_grafen)
+dend <- as.dendrogram(hc)
+
+# Reorder matrix to match tree
+tip_order <- hc$labels[hc$order]
+mat_ord <- mat[tip_order, tip_order]
+
+
+# 3. Mid-contrast publication palette
+
+my_cols <- colorRampPalette(c(
+  "#f7fbff", "#c6dbef", "#6b92d6", "#fddbc7", "#f4a582"
+))(100)
+
+
+# 4. Save as PNG
+
+png("pr_sequence_identity_tree_heatmap.png", width = 2600, height = 1800, res = 300)
+
+
+heatmap.2(
+  mat_ord,
+  Rowv = NA,
+  Colv = dend,
+  dendrogram = "column",
+  trace = "none",
+  key = F,
+  key.title = "Identity",
+  key.xlab = "%",
+  density.info = "none",
+  col = my_cols,
+  breaks = seq(0, 100, length.out = 101),
+  
+  cellnote = mat_ord,   # add % sign
+  notecol = "black",
+  notecex = 1.0,
+  font = 2,                          # <-- THIS makes them bold
+  
+  margins = c(12, 16),
+  sepcolor = "grey85",
+  colsep = 1:ncol(mat_ord),
+  rowsep = 1:nrow(mat_ord),
+  cexRow = 1.1,
+  cexCol = 1.0,
+  srtCol = 45,
+  labRow = rownames(mat_ord),
+  labCol = colnames(mat_ord)
+)
+
+dev.off() 
+```
+
 
 
 
