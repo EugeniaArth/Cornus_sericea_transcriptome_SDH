@@ -13,11 +13,7 @@ LOG_FILE="blastx_remote_log.txt"
 mkdir -p "${RESULTS_DIR}" "${BEST_HITS_DIR}"
 
 # Start logging
-{
-    echo "=============================================="
-    echo " Remote BLASTX annotation started: $(date)"
-    echo "=============================================="
-} | tee "${LOG_FILE}"
+echo " Remote BLASTX annotation started: $(date)" | tee "${LOG_FILE}"
 
 START_TIME=$(date +%s)
 
@@ -28,7 +24,7 @@ for batch in "${SPLIT_DIR}"/*.fasta; do
 
     # Skip if already done
     if [[ -s "${output_file}" ]]; then
-        echo "[⏭️ SKIP] Already completed: ${batch_name}" | tee -a "${LOG_FILE}"
+        echo "[SKIP] Already completed: ${batch_name}" | tee -a "${LOG_FILE}"
         continue
     fi
 
@@ -36,7 +32,7 @@ for batch in "${SPLIT_DIR}"/*.fasta; do
     echo "[DEBUG] Batch: ${batch}, Output: ${output_file}" | tee -a "${LOG_FILE}"
 
     blastx -query "${batch}" \
-           -db /media/eugenia/Main/Eugenia_projects/ncbi_taxonomy/viridiplantae_db/nr_viridiplantae_db \
+           -db /viridiplantae_db/nr_viridiplantae_db \ #path to db
            -evalue 1e-10 \
            -num_threads 28 \
            -max_target_seqs 5 \
@@ -45,9 +41,9 @@ for batch in "${SPLIT_DIR}"/*.fasta; do
 
     # Check BLASTX status and output file size explicitly
     if [[ $? -eq 0 && -s "${output_file}" ]]; then
-        echo "[✅ SUCCESS] BLASTX completed successfully for batch: ${batch_name}" | tee -a "${LOG_FILE}"
+        echo "[SUCCESS] BLASTX completed successfully for batch: ${batch_name}" | tee -a "${LOG_FILE}"
     else
-        echo "[❌ ERROR] BLASTX failed or output empty for batch: ${batch_name}" | tee -a "${LOG_FILE}"
+        echo "[ERROR] BLASTX failed or output empty for batch: ${batch_name}" | tee -a "${LOG_FILE}"
         rm -f "${output_file}"  # Remove empty or failed results
         continue
     fi
@@ -56,12 +52,20 @@ for batch in "${SPLIT_DIR}"/*.fasta; do
     best_hit_output="${BEST_HITS_DIR}/${batch_name}_best_hits.txt"
     sort -k1,1 -k4,4nr "${output_file}" | awk '!seen[$1]++' > "${best_hit_output}"
 
-    echo "[INFO] Best hits filtered for batch: ${batch_name}" | tee -a "${LOG_FILE}"
+    echo "Best hits filtered for batch: ${batch_name}" | tee -a "${LOG_FILE}"
 
 done
 
-# Combine results afterwards:
-cat "${BEST_HITS_DIR}"/*_best_hits.txt > "${BEST_HITS_DIR}/nr_best_hits.txt"
+# Combine all best-hit files using a loop
+combined_output="${BEST_HITS_DIR}/NR_best_hits_combined.txt"
+> "${combined_output}"
+
+for f in "${BEST_HITS_DIR}"/*_best_hits.txt; do
+    [[ -e "$f" ]] || continue
+    cat "$f" >> "${combined_output}"
+done
+
+echo "Combined best hits saved to: ${combined_output}" | tee -a "${LOG_FILE}"
 
 # End timing
 END_TIME=$(date +%s)
@@ -69,9 +73,9 @@ ELAPSED_TIME=$((END_TIME - START_TIME))
 
 # Log total runtime
 {
-    echo "=============================================="
+
     echo " Remote BLASTX annotation finished: $(date)"
     echo " Total elapsed time: ${ELAPSED_TIME} seconds (~$((ELAPSED_TIME / 60)) minutes)"
-    echo " Final results saved at: ${BEST_HITS_DIR}/nr_best_hits.txt"
-    echo "=============================================="
+    echo " Final results saved at: ${BEST_HITS_DIR}/NR_best_hits_combined.txt"
+
 } | tee -a "${LOG_FILE}"
