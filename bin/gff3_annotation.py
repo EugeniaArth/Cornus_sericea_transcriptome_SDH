@@ -1,30 +1,20 @@
 import pandas as pd
 import re
 
-# -----------------------------
-# ID normalization
-# removes the variable coverage part:
-# NODE_10_length_27663_cov_217.671471_g1_i3 -> NODE_10_length_27663_g1_i3
-# -----------------------------
-def normalize_id(x):
-    x = str(x).strip()
-    return re.sub(r'_cov_[^_]+', '', x)
 
-# -----------------------------
 # Load RefSeq annotations (highest priority)
-# -----------------------------
+
 refseq = pd.read_csv(
     'Files/refseq_best_hits.txt',
     sep='\t',
     header=None,
     names=['ID', 'Hit', 'E-value', 'Score', 'Description']
 )
-refseq['norm_ID'] = refseq['ID'].apply(normalize_id)
-refseq_dict = refseq.drop_duplicates('norm_ID').set_index('norm_ID').to_dict(orient='index')
+refseq_dict = refseq.set_index('ID').to_dict(orient='index')
 
-# -----------------------------
+
 # Load UniProt annotations (second priority)
-# -----------------------------
+
 uniprot = pd.read_csv(
     'Files/uniprot_best_hits.txt',
     sep='\t',
@@ -33,61 +23,69 @@ uniprot = pd.read_csv(
 )
 
 def parse_uniprot(description):
-    description = str(description)
-
-    gene_match = re.search(r'GN=([^ ]+)', description)
+    gene_match = re.search(r'GN=([^ ]+)', str(description))
     gene_name = gene_match.group(1) if gene_match else 'NA'
 
-    product_match = re.search(r'sp\|[^|]+\|[^ ]+\s+(.+?)\s+OS=', description)
+    product_match = re.search(r'sp\|[^|]+\|[^ ]+\s+(.+?)\s+OS=', str(description))
     product = product_match.group(1) if product_match else 'NA'
 
-    uniprot_match = re.match(r'(sp\|[^ ]+)', description)
+    uniprot_match = re.match(r'(sp\|[^ ]+)', str(description))
     uniprot_hit = uniprot_match.group(1) if uniprot_match else 'NA'
 
     return gene_name, product, uniprot_hit
 
-uniprot['norm_ID'] = uniprot['ID'].apply(normalize_id)
-
 uniprot_dict = {}
-for _, row in uniprot.drop_duplicates('norm_ID').iterrows():
+for _, row in uniprot.iterrows():
     gene_name, product, uniprot_hit = parse_uniprot(row['Description'])
-    uniprot_dict[row['norm_ID']] = {
+    uniprot_dict[row['ID']] = {
         'gene_name': gene_name,
         'product': product,
         'uniprot_hit': uniprot_hit
     }
 
-# -----------------------------
+
 # Load NCBI nr annotations (third priority)
-# -----------------------------
+
 nr = pd.read_csv(
-    'Files/nr_best_hits.txt',
+    'Files/NR_best_hits_combined.txt',
     sep='\t',
     header=None,
     names=['ID', 'Hit', 'E-value', 'Score', 'Description']
 )
-nr['norm_ID'] = nr['ID'].apply(normalize_id)
-nr_dict = nr.drop_duplicates('norm_ID').set_index('norm_ID').to_dict(orient='index')
+nr_dict = nr.set_index('ID').to_dict(orient='index')
 
-# -----------------------------
+print("nr rows:", len(nr))
+print("first 5 nr IDs:", nr['ID'].head().tolist())
+print("unique nr IDs:", nr['ID'].nunique())
+
+
+
+print("RefSeq entries:", len(refseq_dict))
+print("UniProt entries:", len(uniprot_dict))
+print("nr entries:", len(nr_dict))
+
+
 # Load GO annotations (only from filtered GO file)
-# -----------------------------
+
 go_annots = pd.read_csv(
     'Files/GO_annotation.txt',
     sep='\t',
     header=None,
     names=['ID', 'GO_terms']
 )
-go_annots['norm_ID'] = go_annots['ID'].apply(normalize_id)
-go_dict = go_annots.drop_duplicates('norm_ID').set_index('norm_ID')['GO_terms'].to_dict()
+go_dict = go_annots.set_index('ID')['GO_terms'].to_dict()
 
-# -----------------------------
 # Load KEGG annotations per transcript
-# -----------------------------
+
 kegg_df = pd.read_csv('Files/KEGG_annotation_per_transcript.csv', sep=None, engine='python')
+
+# Clean column names (remove spaces/BOM issues)
 kegg_df.columns = kegg_df.columns.str.strip()
+
+# Debug: print detected columns
 print("KEGG columns:", list(kegg_df.columns))
 
+# Ensure correct column name
 if 'Transcript_ID' not in kegg_df.columns:
     raise ValueError(f"Expected 'Transcript_ID' column, found: {kegg_df.columns.tolist()}")
 
@@ -96,7 +94,6 @@ for col in ['KO_IDs', 'Pathway_IDs', 'Module_IDs', 'Reaction_IDs']:
         kegg_df[col] = ''
 
 kegg_df = kegg_df.fillna('')
-kegg_df['norm_ID'] = kegg_df['Transcript_ID'].apply(normalize_id)
 
 def clean_kegg_ko(value):
     if not str(value).strip():
@@ -108,18 +105,12 @@ def clean_kegg_ko(value):
     )
 
 kegg_df['KO_IDs'] = kegg_df['KO_IDs'].apply(clean_kegg_ko)
-kegg_dict = kegg_df.drop_duplicates('norm_ID').set_index('norm_ID').to_dict(orient='index')
 
-# -----------------------------
-# Minimal checks
-# -----------------------------
-print("RefSeq entries:", len(refseq_dict))
-print("UniProt entries:", len(uniprot_dict))
-print("nr entries:", len(nr_dict))
+kegg_dict = kegg_df.set_index('Transcript_ID').to_dict(orient='index')
 
-# -----------------------------
+
 # Counters
-# -----------------------------
+
 refseq_count = 0
 uniprot_count = 0
 nr_count = 0
@@ -129,9 +120,9 @@ kegg_count = 0
 seen_transcripts = set()
 unannotated_ids = []
 
-# -----------------------------
+
 # Process GFF3
-# -----------------------------
+
 with open('Files/final.clust_annotation_longest_iso.gff3', 'r') as infile, \
      open('annotated_final.gff3', 'w') as outfile:
 
@@ -156,11 +147,9 @@ with open('Files/final.clust_annotation_longest_iso.gff3', 'r') as infile, \
 
         # Use ID for gene/mRNA, Parent for child features
         if feature_type in ('gene', 'mRNA'):
-            raw_lookup_id = attr_fields.get('ID', '').strip()
+            lookup_id = attr_fields.get('ID', '').strip()
         else:
-            raw_lookup_id = attr_fields.get('Parent', '').strip()
-
-        lookup_id = normalize_id(raw_lookup_id)
+            lookup_id = attr_fields.get('Parent', '').strip()
 
         # Count only once per transcript (mRNA features only)
         if feature_type == 'mRNA' and lookup_id not in seen_transcripts:
@@ -174,22 +163,18 @@ with open('Files/final.clust_annotation_longest_iso.gff3', 'r') as infile, \
                 nr_count += 1
             else:
                 unannotated_count += 1
-                unannotated_ids.append(raw_lookup_id)
+                unannotated_ids.append(lookup_id)
 
             go_term = go_dict.get(lookup_id, '')
             if pd.notna(go_term) and str(go_term).strip():
                 go_count += 1
 
-            if lookup_id in kegg_dict and any(
-                str(kegg_dict[lookup_id].get(col, '')).strip()
-                for col in ['KO_IDs', 'Pathway_IDs', 'Module_IDs', 'Reaction_IDs']
-            ):
+            if lookup_id in kegg_dict and any(str(kegg_dict[lookup_id].get(col, '')).strip() for col in ['KO_IDs', 'Pathway_IDs', 'Module_IDs', 'Reaction_IDs']):
                 kegg_count += 1
 
-        # -----------------------------
-        # Functional annotation priority:
-        # RefSeq > UniProt > nr
-        # -----------------------------
+
+        # Functional annotation priority: RefSeq > UniProt > nr
+
         if lookup_id in refseq_dict:
             attr_fields['Name'] = refseq_dict[lookup_id]['Hit']
             attr_fields['product'] = refseq_dict[lookup_id]['Description']
@@ -205,16 +190,16 @@ with open('Files/final.clust_annotation_longest_iso.gff3', 'r') as infile, \
             attr_fields['product'] = nr_dict[lookup_id]['Description']
             attr_fields['NR_best_hit'] = nr_dict[lookup_id]['Hit']
 
-        # -----------------------------
-        # GO annotation
-        # -----------------------------
+
+        # GO annotation (only from GO_annotation.txt)
+
         go_term = go_dict.get(lookup_id, '')
         if pd.notna(go_term) and str(go_term).strip():
             attr_fields['Ontology_term'] = str(go_term)
 
-        # -----------------------------
-        # KEGG annotation
-        # -----------------------------
+
+        # KEGG annotation (from KEGG_annotation_per_transcript.csv)
+
         if lookup_id in kegg_dict:
             kegg_row = kegg_dict[lookup_id]
 
@@ -230,19 +215,13 @@ with open('Files/final.clust_annotation_longest_iso.gff3', 'r') as infile, \
             if str(kegg_row.get('Reaction_IDs', '')).strip():
                 attr_fields['KEGG_Reaction'] = str(kegg_row['Reaction_IDs'])
 
+        # Rebuild attributes
         parts[8] = ';'.join(f'{k}={v}' for k, v in attr_fields.items())
         outfile.write('\t'.join(parts) + '\n')
 
-# -----------------------------
-# Debug overlap after normalization
-# -----------------------------
-norm_nr_keys = set(nr_dict.keys())
-print("Normalized overlap between GFF mRNA and nr:", len(seen_transcripts & norm_nr_keys))
 
-
-# -----------------------------
 # Print summary
-# -----------------------------
+
 print("Annotated GFF3 file created: annotated_final.gff3")
 print("\nAnnotation Summary (mRNA features only):")
 print(f"RefSeq annotations: {refseq_count}")
@@ -252,8 +231,33 @@ print(f"GO annotations: {go_count}")
 print(f"KEGG annotations: {kegg_count}")
 print(f"Unannotated transcripts: {unannotated_count}")
 
+all_gff_ids = seen_transcripts
+
+nr_only = [tid for tid in all_gff_ids if tid in nr_dict and tid not in refseq_dict and tid not in uniprot_dict]
+print("nr-only matches:", len(nr_only))
+print("example nr-only IDs:", nr_only[:10])
+
+unannotated_with_nr_like = [tid for tid in unannotated_ids if tid in nr_dict]
+print("unannotated IDs present in nr:", len(unannotated_with_nr_like))
+print("example unannotated IDs present in nr:", unannotated_with_nr_like[:10])
+
+if unannotated_ids:
+    print("example unannotated ID:", unannotated_ids[0])
+
+# Save unannotated IDs
 with open("unannotated_transcripts.txt", "w") as f:
     for uid in unannotated_ids:
         f.write(uid + "\n")
 
 print("\nUnannotated transcript IDs saved to: unannotated_transcripts.txt")
+
+gff_ids = set(seen_transcripts)
+nr_ids = set(nr_dict.keys())
+
+print("Overlap:", len(gff_ids & nr_ids))
+
+refseq_in_nr = sum(1 for k in refseq_dict if k in nr_dict)
+uniprot_in_nr = sum(1 for k in uniprot_dict if k in nr_dict)
+
+print("RefSeq IDs in nr:", refseq_in_nr)
+print("UniProt IDs in nr:", uniprot_in_nr)
