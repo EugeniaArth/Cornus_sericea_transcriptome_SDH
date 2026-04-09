@@ -18,6 +18,7 @@ library(viridis)
 ```
 
 
+BUSCO results plot
 
 ```{r}
 library(ggplot2)
@@ -67,7 +68,7 @@ p <- ggplot(busco, aes(x = db, y = data, group = type)) +
 
 p
 
-ggsave("plots/busco_statistics2.png", plot = p, width = 10, height = 6, dpi = 300)
+ggsave("plots/busco_statistics.png", plot = p, width = 10, height = 6, dpi = 300)
 ```
 
 
@@ -79,18 +80,18 @@ Analyse GO annotation and create a figure
 
 go_df <- read.csv("Files/GO_terms_highest_level_per_transcript.csv")
 
-# === Count number of genes per GO term and ontology ===
+# Count number of genes per GO term and ontology 
 go_summary <- go_df %>%
   group_by(Ontology, GO_name) %>%
   summarise(NumGenes = n_distinct(Transcript_ID), .groups = "drop")
 
-# === Optional: Keep only top N terms per ontology ===
+# Optional: Keep only top N terms per ontology 
 top_go <- go_summary %>%
   group_by(Ontology) %>%
-  slice_max(order_by = NumGenes, n = 15) %>%  # <- adjust N if needed
+  slice_max(order_by = NumGenes, n = 15) %>%  # <- can adjust N if needed
   ungroup()
 
-# Plot GO terms by function  - one variant of plot
+# Simple plot GO terms by function  
 ggplot(top_go, aes(x = reorder(GO_name, NumGenes), y = NumGenes, fill = Ontology)) +
   geom_bar(stat = "identity", position = position_dodge()) +
   coord_flip() +
@@ -105,10 +106,11 @@ ggplot(top_go, aes(x = reorder(GO_name, NumGenes), y = NumGenes, fill = Ontology
     legend.position = "top"
   )
 
-# Best variant (for paper and diploma)
+# Best variant (for paper and diploma ITMO)
+
 ggdotchart(top_go, x = "GO_name", y = "NumGenes",
            color = "Ontology",                                # Color by groups
-          # palette = c("#00AFBB", "#E7B800", "#FC4E07"), # Custom color palett                      # Sort value in descending order
+         #  palette = c("#00AFBB", "#E7B800", "#FC4E07"), # Custom color palette                      
            add = "segments",                             # Add segments from y = 0 to dots
            rotate = TRUE,                                # Rotate vertically
            group = "Ontology",
@@ -213,19 +215,6 @@ summary_df <- summary_df %>%
   mutate(Group = factor(Group, levels = unique(Group))) %>%
   ungroup()
 
-# Plot with improved readability
-ggplot(summary_df, aes(x = Total_Count, y = reorder(Group, Total_Count), fill = Class)) +
-  geom_bar(stat = "identity", width = 0.7) +
-  facet_grid(Class ~ ., scales = "free_y", space = "free_y") +
-  theme_bw() +
-  labs(title = "KEGG Pathways - Total Counts per Group and Class",
-       x = "Total Number of Genes",
-       y = "KEGG Group") +
-  theme(axis.text.y = element_text(size = 8, face = "bold"),
-        axis.title = element_text(size = 12, face = "bold"),
-        strip.text = element_text(size = 10, face = "bold"),
-        legend.position = "none",
-        plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
 
 
 ggdotchart(summary_df, x = "Group", y = "Total_Count",
@@ -249,6 +238,13 @@ ggdotchart(summary_df, x = "Group", y = "Total_Count",
 ggsave("plots/KEGG_plot.png", width = 10, height = 10, dpi = 300)
 
 
+
+
+```
+
+Total number of classes KEGG
+
+```{r}
 class_totals <- kegg_df %>%
   group_by(Class) %>%
   summarise(Total_Count = sum(Count)) %>%
@@ -261,19 +257,52 @@ sum(kegg_df$Count, na.rm = TRUE)
 
 
 print(class_totals)
+```
 
+Sum of annotation results in general, from resulted best_hits, etc files
+
+```{r}
+# Create vectors
+category <- c(
+              "RefSeq",
+              "UniProt",
+              "NCBI NR",
+              "KEGG", 
+              "GO", 
+              "Unannotated")
+
+count <- c(26681, 19496, 26898, 12326, 12766, 2077)
+
+# Create data frame
+anno_Cser <- data.frame(Category = category, Count = count)
+
+
+ggbarplot(anno_Cser , x = "Category", y = "Count", 
+           ylab = "Number of transcripts",  xlab = "", title = "") +
+  geom_text(aes(label=Count), color="black",
+            position=position_dodge(width=0.9), vjust=-0.25, hjust=0.5, size=4.5) +
+  theme(axis.text.y = element_text(size = 16),
+        axis.text.x = element_text(size = 16),
+        axis.title = element_text(size = 16),
+        strip.text = element_text(size = 16)) +
+  theme( legend.position = "none")
+
+ggsave("plots/Annotation_statistics.png", width = 10, height = 6, dpi = 300)
 ```
 
 
-Count annotions
+Count annotions in final gff3 file
+
+```{r, eval=FALSE}
+library(reticulate)
+py_install("pandas")
+```
 
 ```{python}
+import pandas as pd
 
-annotated_gff = "Files/annotated_final.gff3"  # your updated GFF3
+annotated_gff = "Files/annotated_final.gff3"
 
-# ---------------------------
-# Counters
-# ---------------------------
 counters = {
     'mRNA_total': 0,
     'RefSeq_best_hit': 0,
@@ -281,12 +310,9 @@ counters = {
     'NR_best_hit': 0,
     'KEGG_KO': 0,
     'Ontology_term': 0,
-    'any_protein_hit': 0  # counts if UniProt, RefSeq, or NR exists
+    'any_protein_hit': 0
 }
 
-# ---------------------------
-# Parse GFF3
-# ---------------------------
 with open(annotated_gff, 'r') as infile:
     for line in infile:
         if line.startswith('#') or line.strip() == '':
@@ -307,43 +333,54 @@ with open(annotated_gff, 'r') as infile:
                 key, value = field.split('=', 1)
                 attr_dict[key] = value.strip()
 
-        # Count individual annotation types
-        for key in ['UniProt_best_hit', 'RefSeq_best_hit', 'NR_best_hit', 'EggNOG_best_hit', 'KEGG_KO', 'Ontology_term']:
+        for key in [
+            'UniProt_best_hit',
+            'RefSeq_best_hit',
+            'NR_best_hit',
+            'KEGG_KO',
+            'Ontology_term'
+        ]:
             if key in attr_dict and attr_dict[key] != '':
                 counters[key] += 1
 
-        # Count any protein hit once per transcript
         if any(attr_dict.get(k) for k in ['UniProt_best_hit', 'RefSeq_best_hit', 'NR_best_hit']):
             counters['any_protein_hit'] += 1
 
-# ---------------------------
-# Print summary
-# ---------------------------
 print("mRNA annotation summary:")
 for k, v in counters.items():
     print(f"{k}: {v}")
-    
+
+# save for plotting
+gff3_annotation_res = pd.DataFrame({
+      "Category": list(counters.keys()),
+      "Count": list(counters.values())
+  })
+
+
 ```
 
-Sum of annotation results in general
 
 ```{r}
-# Create vectors
-category <- c(
-              "RefSeq",
-              "UniProt",
-              "NCBI NR",
-              "KEGG", 
-              "GO", 
-              "Unannotated")
+library(reticulate)
 
-count <- c(26681, 19496, 26903, 12326, 12766, 2372)
+# get Python object
+tmp <- py$gff3_annotation_res$to_dict("list")
+gff3_annotation_res <- as.data.frame(py_to_r(tmp))
+new_line <- c("Unannotated", 2077)
+gff3_annotation_res <- rbind(gff3_annotation_res, new_line)
 
-# Create data frame
-anno_Cser <- data.frame(Category = category, Count = count)
+gff3_annotation_res$Category <-  sub("_best_hit", "", gff3_annotation_res$Category)
+gff3_annotation_res$Category <-  sub("KEGG_KO", "KEGG", gff3_annotation_res$Category)
+gff3_annotation_res$Category <-  sub("NR", "NCBI NR", gff3_annotation_res$Category)
+gff3_annotation_res$Category <-  sub("Ontology_term", "GO", gff3_annotation_res$Category)
 
 
-ggbarplot(anno_Cser , x = "Category", y = "Count", 
+
+# fix column types (important!)
+gff3_annotation_res$Count <- as.numeric(gff3_annotation_res$Count)
+gff3_annotation_res$Category <- as.character(gff3_annotation_res$Category)
+
+ggbarplot(gff3_annotation_res[ c(2:6, 8),], x = "Category", y = "Count", 
            ylab = "Number of transcripts",  xlab = "", title = "") +
   geom_text(aes(label=Count), color="black",
             position=position_dodge(width=0.9), vjust=-0.25, hjust=0.5, size=4.5) +
@@ -353,8 +390,9 @@ ggbarplot(anno_Cser , x = "Category", y = "Count",
         strip.text = element_text(size = 16)) +
   theme( legend.position = "none")
 
-ggsave("plots/Annotation_statistics.png", width = 10, height = 6, dpi = 300)
+ggsave("plots/Annotation_statistics_gff3.png", width = 10, height = 6, dpi = 300)
 ```
+
 
 DQD/SDH analysis
 
@@ -542,15 +580,25 @@ dev.off()
 
 
 
+```{r}
+
+```
+
 
 
 ```{r}
+
+if (!requireNamespace("devtools", quietly=TRUE))
+    install.packages("devtools")
+devtools::install_github("YuLab-SMU/ggmsa")
+
+
 library(ggmsa)
 library(Biostrings)
 
-protein_sequences <- readAAStringSet("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/SDH_prot_seq/clustal_omega_aln-fasta")
-protein_sequences <- readAAStringSet("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/subset_alignment.fasta")
-#protein_sequences <- readAAStringSet("/Users/eugenianikonorova/Desktop/Work/Plant_sequencing/SDH_prot_seq/Multiple_alignment.fa")
+
+protein_sequences <- readAAStringSet("Files/Alignment/ClostalO.aln.reordered.fa")
+
 
 DQD_domain <- c(124, 126, 128, 155, 214, 241, 269, 271, 279, 291, 304)
 # For each sequence, extract amino acids at positions 5, 9, 15
@@ -564,6 +612,10 @@ aa_sites <- lapply(protein_sequences, function(x) {
 })
 
 SDH_domain <- c(336, 338, 381, 385, 406, 407,421, 422, 423, 550, 578, 582)
+
+SDH_domain <- c(334, 424, 427, 490) #gallate 424!
+ 
+
 # For each sequence, extract amino acids at positions 5, 9, 15
 # Define valid amino acids (1-letter codes)
 valid_aa <- "ACDEFGHIKLMNPQRSTVWY"
@@ -597,9 +649,10 @@ writeXStringSet(aa_set, filepath = "subset_alignment.fasta")
 
 ggmsa(aa_set, color = "Chemistry_AA", 
       font = "DroidSansMono", char_width = 0.5, seq_name = TRUE)
+# or
 ggmsa(aa_set, color = "LETTER", 
       font = "DroidSansMono", char_width = 0.5, seq_name = TRUE)
-
+# or
 ggmsa(aa_set, color = "Shapely_AA", 
       font = "DroidSansMono", char_width = 0.5, seq_name = TRUE, ref = "AtSDH", consensus_views = T)
 

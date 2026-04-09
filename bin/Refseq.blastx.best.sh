@@ -9,29 +9,25 @@ DB_NAME="refseq_proteins.dmnd"  # DIAMOND DB
 FASTA_DB="all_refseq_proteins.faa"  # Combined RefSeq protein fasta
 LOG_FILE="diamond_annotation_log.txt"
 
-# === PREPARE ===
 mkdir -p "${RESULTS_DIR}" "${BEST_HITS_DIR}"
 
-#LOG
-{
-    echo "=============================================="
-    echo " Local DIAMOND annotation started: $(date)"
-    echo "=============================================="
-} | tee "${LOG_FILE}"
+
+
+echo " Local DIAMOND annotation started: $(date)" | tee -a"${LOG_FILE}"
 
 START_TIME=$(date +%s)
 
-# CHECK IF DB EXISTS
+# Check if DB exists
 if [[ ! -f "${DB_NAME}" ]]; then
     echo "[INFO] Building DIAMOND database from: ${FASTA_DB}" | tee -a "${LOG_FILE}"
     diamond makedb --in "${FASTA_DB}" -d refseq_proteins
     if [[ $? -ne 0 ]]; then
-        echo "[❌ ERROR] Failed to create DIAMOND database!" | tee -a "${LOG_FILE}"
+        echo "[ERROR] Failed to create DIAMOND database!" | tee -a "${LOG_FILE}"
         exit 1
     fi
 fi
 
-#  PROCESS EACH BATCH
+#  Process each natch
 for batch in "${SPLIT_DIR}"/*.fasta; do
     batch_name=$(basename "${batch}" .fasta)
     output_file="${RESULTS_DIR}/${batch_name}_diamond.tsv"
@@ -49,9 +45,9 @@ for batch in "${SPLIT_DIR}"/*.fasta; do
 
     # Check status
     if [[ $? -eq 0 ]]; then
-        echo "[✅ SUCCESS] DIAMOND completed for batch: ${batch_name}" | tee -a "${LOG_FILE}"
+        echo "[SUCCESS] DIAMOND completed for batch: ${batch_name}" | tee -a "${LOG_FILE}"
     else
-        echo "[❌ ERROR] DIAMOND failed for batch: ${batch_name}" | tee -a "${LOG_FILE}"
+        echo "[ERROR] DIAMOND failed for batch: ${batch_name}" | tee -a "${LOG_FILE}"
         continue
     fi
 
@@ -62,17 +58,15 @@ for batch in "${SPLIT_DIR}"/*.fasta; do
     echo "[INFO] Best hits saved for batch: ${batch_name}" | tee -a "${LOG_FILE}"
 done
 
-# === COMBINE RESULTS ===
+#COMBINE RESULTS
 cat "${BEST_HITS_DIR}"/*_best_hits.txt > "${BEST_HITS_DIR}/refseq_best_hits.txt"
 
 END_TIME=$(date +%s)
 ELAPSED_TIME=$((END_TIME - START_TIME))
 
-# === FINAL LOG ===
+# FINAL LOG
 {
-    echo "=============================================="
     echo " DIAMOND annotation finished: $(date)"
     echo " Total elapsed time: ${ELAPSED_TIME} seconds (~$((ELAPSED_TIME / 60)) minutes)"
     echo " Final results at: ${BEST_HITS_DIR}/refseq_best_hits.txt"
-    echo "=============================================="
 } | tee -a "${LOG_FILE}"

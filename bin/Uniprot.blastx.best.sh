@@ -14,11 +14,9 @@ mkdir -p "$OUTPUT_DIR"
 
 # Logging
 {
-    echo "==============================="
     echo "BLASTX Annotation Started: $(date)"
     echo "Input File: final.clust_transcripts_longest_iso"
     echo "Database: blastx/plant_db_uniprot/uniprot_plants_db"
-    echo "==============================="
 } | tee "$LOG_FILE"
 
 # Run BLASTX
@@ -56,10 +54,8 @@ ELAPSED_TIME=$((END_TIME - START_TIME))
 
 # Logging
 {
-    echo "==============================="
     echo "BLASTX Finished: $(date)"
     echo "Total Time: $ELAPSED_TIME seconds (~$(($ELAPSED_TIME / 60)) minutes)"
     echo "Raw Results: blastx_annotations_raw.txt"
     echo "Best hits Results: blastx_annotations_best_hits.txt"
-    echo "==============================="
 } | tee -a "$LOG_FILE"
