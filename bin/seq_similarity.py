@@ -1,8 +1,10 @@
 from Bio import SeqIO
 from Bio import pairwise2
 
+# check sequence similarity of DQD_SDH (nucleotide) 
+
 # Load sequences
-records = list(SeqIO.parse("/Users/eugenianikonorova/Desktop/Work/Cornus_sericea_transcriptome_SDH/Files/DQD_SDH/DQD_SDH_possible_nt.fasta", "fasta"))
+records = list(SeqIO.parse("/Files/DQD_SDH_possible_nt.fasta", "fasta"))
 seqs = [str(r.seq) for r in records]
 names = [r.id for r in records]
 

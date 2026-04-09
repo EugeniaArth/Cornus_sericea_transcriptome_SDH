@@ -1,16 +1,16 @@
 import pandas as pd
 from goatools.obo_parser import GODag
 
-# === Input / output files ===
+# Input / output files
 input_file = "Files/eggnog_annotations.tsv"
 obo_file = "db/go-basic.obo"
 
 output_file_all = "GO_terms_with_ontology.csv"
 output_file_filtered = "GO_terms_highest_level_per_transcript.csv"
 
-# === Column indices for eggNOG-mapper annotation file (no header) ===
+# Column indices for eggNOG-mapper annotation file (no header)
 TRANSCRIPT_COL = 0
-GO_COL = 9  # based on your sample input
+GO_COL = 9  # based on sample input
 
 print("[INFO] Reading eggNOG annotation file...")
 eggnog_df = pd.read_csv(
@@ -27,7 +27,7 @@ print(f"[INFO] Loaded {len(eggnog_df)} rows.")
 print("\n[DEBUG] First 5 values in GO column:")
 print(eggnog_df.iloc[:5, GO_COL])
 
-# === Step 1: Extract transcript–GO pairs ===
+# Extract transcript–GO pairs
 go_data = []
 skipped_transcripts = 0
 
@@ -60,7 +60,7 @@ for _, row in eggnog_df.iterrows():
 print(f"\n[INFO] Parsed {len(go_data)} transcript–GO pairs.")
 print(f"[INFO] Skipped {skipped_transcripts} transcripts with no GO terms.")
 
-# === Step 2: Create DataFrame ===
+# Create DataFrame
 go_df = pd.DataFrame(go_data, columns=["Transcript_ID", "GO_term"])
 
 if go_df.empty:
@@ -73,11 +73,11 @@ go_df = go_df.drop_duplicates()
 print("\n[DEBUG] First few transcript–GO pairs:")
 print(go_df.head())
 
-# === Step 3: Load GO ontology DAG ===
+# Load GO ontology DAG
 print("\n[INFO] Loading GO DAG...")
 go_dag = GODag(obo_file)
 
-# === Step 4: Annotation helper functions ===
+# Annotation helper functions
 def get_namespace(go_id):
     term = go_dag.get(go_id)
     return term.namespace if term else "Unknown"
@@ -90,17 +90,17 @@ def get_level(go_id):
     term = go_dag.get(go_id)
     return term.level if term else -1  # use -1 for unknown terms
 
-# === Step 5: Add GO metadata ===
+# Add GO metadata
 print("[INFO] Annotating GO terms...")
 go_df["Ontology"] = go_df["GO_term"].apply(get_namespace)
 go_df["GO_name"] = go_df["GO_term"].apply(get_name)
 go_df["GO_level"] = go_df["GO_term"].apply(get_level)
 
-# === Step 6: Save full annotated table ===
+# Save full annotated table
 go_df.to_csv(output_file_all, index=False)
 print(f"[INFO] Full GO term table saved to: {output_file_all}")
 
-# === Step 7: Create filtered table with highest GO_level per transcript ===
+# Create filtered table with highest GO_level per transcript
 # For each transcript, keep rows where GO_level equals the max GO_level for that transcript
 max_level_per_transcript = go_df.groupby("Transcript_ID")["GO_level"].transform("max")
 filtered_go_df = go_df[go_df["GO_level"] == max_level_per_transcript].copy()
@@ -114,7 +114,7 @@ filtered_go_df = filtered_go_df.sort_values(
 filtered_go_df.to_csv(output_file_filtered, index=False)
 print(f"[INFO] Filtered GO table saved to: {output_file_filtered}")
 
-# === Step 8: Summary ===
+# Summary
 summary_all = (
     go_df.groupby("Ontology")["GO_term"]
     .nunique()
@@ -149,7 +149,7 @@ gff_df = (
     .reset_index()
 )
 
-# Save as tab-separated file (no header if you prefer)
+# Save as tab-separated file (no header if prefer)
 gff_df.to_csv(output_file, sep="\t", index=False, header=False)
 
 print(f"[INFO] GFF3 annotation table saved to: {output_file}")

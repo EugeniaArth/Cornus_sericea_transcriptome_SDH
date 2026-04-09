@@ -104,7 +104,7 @@ def map_modules(ids, module_dict):
     })
 
 
-# Step 1: Extract KEGG fields
+# Extract KEGG fields
 
 df = pd.read_csv(INPUT_FILE, sep="\t", header=None, low_memory=False)
 
@@ -128,7 +128,7 @@ print(f"[✓] KEGG annotations saved to: {INTERMEDIATE_FILE}")
 print(df_kegg.head())
 
 
-# Step 2: Load lookups
+# Load lookups
 
 ko_dict = load_lookup(KO_FILE)
 pathway_dict = load_lookup(PATHWAY_FILE)
@@ -136,7 +136,7 @@ reaction_dict = load_lookup(REACTION_FILE)
 module_dict = load_module_dict(MODULE_FILE)
 
 
-# Step 3: Add descriptions
+# Add descriptions
 
 df_ann = pd.read_csv(INTERMEDIATE_FILE)
 
@@ -170,13 +170,13 @@ df_out = pd.concat([df_ann[["Transcript_ID", "KO_IDs", "Pathway_IDs", "Reaction_
 df_out.to_csv(OUTPUT_FILE, index=False)
 
 
-# Step 4: Summary stats
+# Summary stats
 
 total = len(df_out)
 with_module = (df_out["Module_Descriptions"] != "").sum()
 with_pathway = (df_out["Pathway_IDs"] != "").sum()
 
-print(f"\n✅ {OUTPUT_FILE} created.")
+print(f"\n {OUTPUT_FILE} created.")
 print("📊 Annotation Summary:")
 print(f"  Total Transcript_IDs         : {total}")
 print(f"  With KEGG Modules            : {with_module} ({with_module / total:.1%})")
