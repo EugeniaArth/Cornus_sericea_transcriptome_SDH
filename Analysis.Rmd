@@ -578,87 +578,449 @@ dev.off()
 ```
 
 
+* Plot the figure 4 from tree and aln data *
 
 
 ```{r}
 
-```
+if (!requireNamespace("devtools", quietly = TRUE)) install.packages("devtools")
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 
-
-
-```{r}
-
-if (!requireNamespace("devtools", quietly=TRUE))
-    install.packages("devtools")
-devtools::install_github("YuLab-SMU/ggmsa")
-
+# Install if needed
+# devtools::install_github("YuLab-SMU/ggmsa")
+# BiocManager::install(c("Biostrings"))
+# install.packages(c("ggplot2", "readr"))
 
 library(ggmsa)
 library(Biostrings)
+library(ggplot2)
+library(readr)
 
 
-protein_sequences <- readAAStringSet("Files/Alignment/ClostalO.aln.reordered.fa")
+# INPUT FILES
+
+alignment_file <- "Files/Alignment/ClostalO.aln.fa"
+tree_file <- "Files/Alignment/ClostalO.aln.fa.contree"
+
+# Output files
+reordered_fasta_out <- "Files/Alignment/ClostalO.aln.reordered.fa"
+mapping_out <- "Files/Alignment/AtSDH_alignment_column_map.csv"
+table_out <- "Files/Alignment/AtSDH_position_extraction_table.csv"
+
+# Reference sequence name
+reference_name <- "AtSDH"
+
+# AtSDH residue positions of interest
+domains <- list(
+  DQD = c(124, 126, 128, 155, 214, 241, 269, 271, 279, 291, 304),
+  SDH_substrate = c(336, 338, 381, 385, 406, 407, 422, 423, 550, 578, 582),
+  SDH_cofactor = c(483, 484, 485, 488, 522, 523)
+)
+
+# Number of visual spacer columns between blocks
+spacer <- 3
+
+# METADATA FOR DOTS
+
+meta_file <- "Files/Alignment/metadata_fig_4.xlsx"
+meta_raw <- read_xlsx(meta_file)
+
+colnames(meta_raw) <- c("seq_id", "gallate", "qdh", "cp")
+
+meta <- meta_raw %>%
+  mutate(
+    gallate = as.numeric(gallate) > 0,
+    qdh = as.numeric(qdh) > 0,
+    cp = as.numeric(cp) > 0
+  )
+
+clade_map <- bind_rows(
+  data.frame(seq_id = c("AtSDH", "BrapaQDH", "BnapusQDH"), clade = "I"),
+  data.frame(seq_id = c("CserDQD/SDH1.1", "CserDQD/SDH1.2", "Poptr4", "EgQDH2"), clade = "II"),
+  data.frame(seq_id = c("CserDQD/SDH5", "CsDQD/SDHb", "CasSDH1", "NtSDH2", "SlQDH",
+                        "Poptr2", "Poptr3", "EcDQD/SDH4a", "EcDQD/SDH4b", "EgQDH1", "VvSDH2"), clade = "III"),
+  data.frame(seq_id = c("CserDQD/SDH2", "CsDQD/SDHa", "NtSDH1", "SlSDH1", "VvSDH1",
+                        "JrSDH", "FvSDH3", "FvSDH4", "Poptr1", "EcDQD/SDH1", "EgDQD/SDH1", "PgSDH1"), clade = "IV"),
+  data.frame(seq_id = c("CserDQD/SDH3", "CsDQD/SDHc", "CasSDH2", "EcDQD/SDH3", "EgDQD/SDH3",
+                        "PgSDH3_2", "FvSDH1", "PgSDH3a_1", "PgSDH3a_2", "PgSDH3_1", "VvSDH3"), clade = "V"),
+  data.frame(seq_id = c("CserDQD/SDH4", "CsDQD/SDHd", "CasSDH3", "Poptr5", "FvSDH2",
+                        "EcDQD/SDH2", "EgDQD/SDH2", "PgSDH4", "VvSDH4"), clade = "VI")
+)
+
+# HELPERS
+
+read_tree_tip_order <- function(tree_file) {
+  txt <- paste(readLines(tree_file, warn = FALSE), collapse = "")
+  txt <- gsub("\\s+", "", txt)
+
+  # remove branch lengths like :0.123
+  txt2 <- gsub(":[0-9eE+\\.-]+", "", txt)
+
+  # split Newick into tokens
+  parts <- unlist(strsplit(txt2, "[\\(\\),;]"))
+  tips <- parts[nzchar(parts)]
+
+  # remove possible internal node labels that follow ')'
+  # in most .contree files, after removing branch lengths, tips remain the true labels
+  unique(tips)
+}
+
+build_reference_map <- function(aligned_seq, ref_name = "AtSDH") {
+  chars <- strsplit(as.character(aligned_seq), "")[[1]]
+
+  ref_pos <- integer()
+  aln_col <- integer()
+
+  aa_counter <- 0
+  for (i in seq_along(chars)) {
+    if (chars[i] != "-") {
+      aa_counter <- aa_counter + 1
+      ref_pos <- c(ref_pos, aa_counter)
+      aln_col <- c(aln_col, i)
+    }
+  }
+
+  data.frame(
+    reference = ref_name,
+    residue_number = ref_pos,
+    alignment_column = aln_col,
+    stringsAsFactors = FALSE
+  )
+}
+
+extract_positions_by_reference <- function(seqs, ref_map, positions, group_name) {
+  aln_cols <- ref_map$alignment_column[match(positions, ref_map$residue_number)]
+
+  seq_chars <- as.character(seqs)
+
+  residues_per_seq <- lapply(seq_chars, function(s) {
+    substring(s, aln_cols, aln_cols)
+  })
+
+  residue_mat <- do.call(rbind, residues_per_seq)
+  colnames(residue_mat) <- paste0("AA", positions)
+
+  grouped <- apply(residue_mat, 1, paste0, collapse = "")
+
+  out <- as.data.frame(residue_mat, stringsAsFactors = FALSE)
+  out[[group_name]] <- grouped
+  out
+}
+
+make_combined_subset <- function(seqs, ref_map, domains, spacer = 3, spacer_char = "-") {
+  seq_chars <- as.character(seqs)
+  seq_names <- names(seqs)
+
+  combined_strings <- character(length(seq_chars))
+  axis_labels <- character()
+  spacer_positions <- integer()
+  domain_ranges <- list()
+
+  current_pos <- 0
+
+  for (i in seq_along(domains)) {
+    ref_positions <- domains[[i]]
+    aln_cols <- ref_map$alignment_column[match(ref_positions, ref_map$residue_number)]
+
+    block_strings <- vapply(seq_chars, function(s) {
+      paste0(substring(s, aln_cols, aln_cols), collapse = "")
+    }, character(1))
+
+    if (i == 1) {
+      combined_strings <- block_strings
+      start_pos <- 1
+    } else {
+      spacer_string <- paste(rep(spacer_char, spacer), collapse = "")
+      combined_strings <- paste0(combined_strings, spacer_string, block_strings)
+
+      new_spacers <- (current_pos + 1):(current_pos + spacer)
+      spacer_positions <- c(spacer_positions, new_spacers)
+
+      axis_labels <- c(axis_labels, rep("", spacer))
+      current_pos <- current_pos + spacer
+      start_pos <- current_pos + 1
+    }
+
+    axis_labels <- c(axis_labels, as.character(ref_positions))
+    end_pos <- start_pos + length(ref_positions) - 1
+    domain_ranges[[names(domains)[i]]] <- c(start_pos, end_pos)
+
+    current_pos <- end_pos
+  }
+
+  aa_set <- AAStringSet(combined_strings)
+  names(aa_set) <- seq_names
+
+  list(
+    aa_set = aa_set,
+    axis_labels = axis_labels,
+    spacer_positions = spacer_positions,
+    domain_ranges = domain_ranges
+  )
+}
 
 
-DQD_domain <- c(124, 126, 128, 155, 214, 241, 269, 271, 279, 291, 304)
-# For each sequence, extract amino acids at positions 5, 9, 15
-# Define valid amino acids (1-letter codes)
-valid_aa <- "ACDEFGHIKLMNPQRSTVWY"
-# Extract amino acids at those positions for each sequence
-aa_sites <- lapply(protein_sequences, function(x) {
-  s <- as.character(x)
-  aa <- substring(s, DQD_domain, DQD_domain)
-  paste0(aa, collapse = "")
-})
+# LOAD DATA
 
-SDH_domain <- c(336, 338, 381, 385, 406, 407,421, 422, 423, 550, 578, 582)
+protein_sequences <- readAAStringSet(alignment_file)
+tip_order <- read_tree_tip_order(tree_file)
 
-SDH_domain <- c(334, 424, 427, 490) #gallate 424!
- 
+# Keep only tree tips found in alignment, in tree order
+tip_order_found <- tip_order[tip_order %in% names(protein_sequences)]
 
-# For each sequence, extract amino acids at positions 5, 9, 15
-# Define valid amino acids (1-letter codes)
-valid_aa <- "ACDEFGHIKLMNPQRSTVWY"
-# Extract amino acids at those positions for each sequence
-aa_sites <- lapply(protein_sequences, function(x) {
-  s <- as.character(x)
-  aa <- substring(s, SDH_domain, SDH_domain)
-  paste0(aa, collapse = "")
-})
+# Add any alignment sequences not found in the tree at the end
+tip_order_missing <- setdiff(names(protein_sequences), tip_order_found)
+final_order <- c(tip_order_found, tip_order_missing)
 
-NRT_domain <- c(483,484, 485, 488, 522, 523)
-# For each sequence, extract amino acids at positions 5, 9, 15
-# Define valid amino acids (1-letter codes)
-valid_aa <- "ACDEFGHIKLMNPQRSTVWY"
-# Extract amino acids at those positions for each sequence
-aa_sites <- lapply(protein_sequences, function(x) {
-  s <- as.character(x)
-  aa <- substring(s, NRT_domain, NRT_domain)
-  paste0(aa, collapse = "")
-})
+protein_sequences_reordered <- protein_sequences[match(final_order, names(protein_sequences))]
+
+# Save reordered FASTA
+writeXStringSet(protein_sequences_reordered, filepath = reordered_fasta_out)
 
 
-# Convert to named AAStringSet
-aa_set <- AAStringSet(unlist(aa_sites))
-names(aa_set) <- names(protein_sequences)
-# Save to temp file
-writeXStringSet(aa_set, filepath = "subset_alignment.fasta")
+# MAP AtSDH RESIDUE NUMBERING TO ALIGNMENT COLUMNS
+
+if (!(reference_name %in% names(protein_sequences_reordered))) {
+  stop(paste("Reference sequence", reference_name, "not found in alignment."))
+}
+
+ref_seq <- protein_sequences_reordered[[reference_name]]
+ref_map <- build_reference_map(ref_seq, ref_name = reference_name)
+
+write_csv(ref_map, mapping_out)
+
+# EXTRACT RESIDUES FOR ALL SEQUENCES
+
+all_positions <- unlist(domains, use.names = FALSE)
+all_positions <- unique(all_positions)
+
+extraction_df <- data.frame(
+  Sequence = names(protein_sequences_reordered),
+  stringsAsFactors = FALSE
+)
+
+for (group_name in names(domains)) {
+  tmp <- extract_positions_by_reference(
+    seqs = protein_sequences_reordered,
+    ref_map = ref_map,
+    positions = domains[[group_name]],
+    group_name = group_name
+  )
+
+  aa_cols <- paste0("AA", domains[[group_name]])
+  aa_cols <- aa_cols[!aa_cols %in% names(extraction_df)]
+
+  if (length(aa_cols) > 0) {
+    extraction_df[aa_cols] <- tmp[aa_cols]
+  }
+  extraction_df[[group_name]] <- tmp[[group_name]]
+}
+
+write_csv(extraction_df, table_out)
+
+
+# MAKE PLOTTING SUBSET WITH VISUAL SPACERS
+
+res <- make_combined_subset(
+  seqs = protein_sequences_reordered,
+  ref_map = ref_map,
+  domains = domains,
+  spacer = spacer,
+  spacer_char = "-"
+)
+
+aa_set <- res$aa_set
+writeXStringSet(aa_set, filepath = "Files/Alignment/combined_subset_alignment.fasta")
+
+
+# PLOT basic ggmsa 
+
+p <- ggmsa(
+  aa_set,
+  color = "Chemistry_AA",
+  font = "DroidSansMono",
+  char_width = 0.6,
+  seq_name = TRUE
+) +
+  scale_x_continuous(
+  breaks = seq_along(res$axis_labels),
+  labels = NULL,
+  position = "top"
+) + 
+  theme(
+  axis.text.x = element_text(size = 14, angle = 90, vjust = 0.5, hjust = -1.6),
+  axis.text.y = element_text(size = 14),
+  axis.ticks.x = element_blank(),
+  panel.grid = element_blank()
+)
+
+
+# paint spacer columns white so they look empty
+for (pos in res$spacer_positions) {
+  p <- p + annotate(
+    "rect",
+    xmin = pos - 0.5, xmax = pos + 0.5,
+    ymin = -Inf, ymax = Inf,
+    fill = "white",
+    colour = NA
+  )
+}
+
+
+# optional domain titles
+domain_centers <- sapply(res$domain_ranges, mean)
+
+p <- p +
+  annotate("text", x = domain_centers["DQD"], y = length(aa_set) + 5,
+           label = "DQD domain", size = 5) +
+  annotate("text", x = domain_centers["SDH_substrate"], y = length(aa_set) + 5,
+           label = "SDH domain 
+(substrate)", size = 5) +
+  annotate("text", x = domain_centers["SDH_cofactor"], y = length(aa_set) + 5,
+           label = "SDH domain 
+(cofactor)", size = 5) +
+  coord_cartesian(clip = "off") +
+  theme(
+    plot.margin = margin(20, 20, 20, 20)
+  )
+
+
+highlight_numbers <- c(214, 241, 338, 385, 423, 483, 484, 485)
+label_df <- data.frame(
+  x = seq_along(res$axis_labels),
+  label = res$axis_labels,
+  stringsAsFactors = FALSE
+)
+
+label_df$is_highlight <- label_df$label %in% highlight_numbers
+
+y_labels <- length(aa_set) + 2
+
+p <- p +
+  geom_text(
+    data = label_df,
+    aes(x = x, y = y_labels, label = label),
+    inherit.aes = FALSE,
+    angle = 90,
+    size = 5,
+    colour = ifelse(label_df$is_highlight, "red", "black"),
+    fontface = ifelse(label_df$is_highlight, "bold", "plain")
+  )
+
+# MODIFY PLOT WITH METADATA
+
+
+# get exact row y positions from ggmsa plot
+gb <- ggplot_build(p)
+
+row_y <- sort(unique(gb$data[[1]]$y), decreasing = TRUE)
+if (length(row_y) != length(names(aa_set))) {
+  row_y <- sort(unique(gb$data[[2]]$y), decreasing = TRUE)
+}
+
+row_map <- data.frame(
+  seq_id = names(aa_set),
+  y = row_y
+)
 
 
 
+#annotation
+ann <- row_map %>%
+  left_join(meta, by = "seq_id") %>%
+  left_join(clade_map, by = "seq_id") %>%
+  mutate(
+    gallate = ifelse(is.na(gallate), FALSE, gallate),
+    qdh = ifelse(is.na(qdh), FALSE, qdh),
+    cp = ifelse(is.na(cp), FALSE, cp)
+  )
 
-ggmsa(aa_set, color = "Chemistry_AA", 
-      font = "DroidSansMono", char_width = 0.5, seq_name = TRUE)
-# or
-ggmsa(aa_set, color = "LETTER", 
-      font = "DroidSansMono", char_width = 0.5, seq_name = TRUE)
-# or
-ggmsa(aa_set, color = "Shapely_AA", 
-      font = "DroidSansMono", char_width = 0.5, seq_name = TRUE, ref = "AtSDH", consensus_views = T)
+clade_centers <- ann %>%
+  filter(!is.na(clade)) %>%
+  group_by(clade) %>%
+  summarise(y = mean(y), .groups = "drop")
 
+clade_bounds <- ann %>%
+  filter(!is.na(clade)) %>%
+  group_by(clade) %>%
+  summarise(
+    ymin = min(y) - 0.45,
+    ymax = max(y) + 0.45,
+    ymid = mean(y),
+    .groups = "drop"
+  )
+
+# x positions for metadata columns, placed to the left of the sequence names
+x_ga    <- -7.5
+x_qdh   <- -5.5
+x_cp    <- -3.5
+x_clade <- -1.2
+x_clade_bracket <- -1.8
+
+
+p2 <- p +
+  coord_cartesian(
+  xlim = c(-7, length(res$axis_labels) + 0.5), #move 
+    clip = "off"
+  ) +
+  theme(
+    plot.margin = margin(20, 20, 20, 40)
+  ) +
+  annotate("text", x = x_ga,    y = max(ann$y) + 1.8, label = "GA",    fontface = "bold", size = 5) +
+  annotate("text", x = x_qdh,   y = max(ann$y) + 1.8, label = "QDH",   fontface = "bold", size = 5) +
+  annotate("text", x = x_cp,    y = max(ann$y) + 1.8, label = "Cp",    fontface = "bold", size = 5) +
+  annotate("text", x = x_clade, y = max(ann$y) + 1.8, label = "Clade", fontface = "bold", size = 5) +
+  geom_point(
+    data = ann %>% filter(gallate),
+    aes(x = x_ga, y = y),
+    inherit.aes = FALSE,
+    colour = "#E78AC3", size = 3.5
+  ) +
+  geom_point(
+    data = ann %>% filter(qdh),
+    aes(x = x_qdh, y = y),
+    inherit.aes = FALSE,
+    colour = "#4C78A8", size = 3.5
+  ) +
+  geom_point(
+    data = ann %>% filter(cp),
+    aes(x = x_cp, y = y),
+    inherit.aes = FALSE,
+    colour = "#4DAF4A", size = 3.5
+  ) +
+  geom_segment(
+  data = clade_bounds,
+  aes(x = x_clade_bracket, xend = x_clade_bracket, y = ymin, yend = ymax),
+  inherit.aes = FALSE,
+  linewidth = 0.5
+) +
+  geom_segment(
+  data = clade_bounds,
+  aes(x = x_clade_bracket, xend = x_clade_bracket + 0.22, y = ymax, yend = ymax),
+  inherit.aes = FALSE,
+  linewidth = 0.5
+) +
+  geom_segment(
+  data = clade_bounds,
+  aes(x = x_clade_bracket, xend = x_clade_bracket + 0.22, y = ymin, yend = ymin),
+  inherit.aes = FALSE,
+  linewidth = 0.5
+) +
+  geom_text(
+  data = clade_bounds,
+  aes(x = x_clade, y = ymid, label = clade),
+  inherit.aes = FALSE,
+  fontface = "bold",
+  size = 4.2
+)
+
+print(p2)
+
+ggsave("combined_domains_alignment_with_metadata2.png", p2,
+       width = 12, height = 12, dpi = 300, bg = "white")
 
 
 ```
 
 
-
+`
