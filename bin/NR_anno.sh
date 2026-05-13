@@ -7,13 +7,13 @@ export BLASTDB_LMDB_MAP=0
 SPLIT_DIR="split_batches"
 RESULTS_DIR="blast_results"
 BEST_HITS_DIR="best_hits"
-LOG_FILE="blastx_remote_log.txt"
+LOG_FILE="blastx_log.txt"
 
 # Create directories explicitly
 mkdir -p "${RESULTS_DIR}" "${BEST_HITS_DIR}"
 
 # Start logging
-echo " Remote BLASTX annotation started: $(date)" | tee "${LOG_FILE}"
+echo " BLASTX annotation started: $(date)" | tee "${LOG_FILE}"
 
 START_TIME=$(date +%s)
 
@@ -74,7 +74,7 @@ ELAPSED_TIME=$((END_TIME - START_TIME))
 # Log total runtime
 {
 
-    echo " Remote BLASTX annotation finished: $(date)"
+    echo " BLASTX annotation finished: $(date)"
     echo " Total elapsed time: ${ELAPSED_TIME} seconds (~$((ELAPSED_TIME / 60)) minutes)"
     echo " Final results saved at: ${BEST_HITS_DIR}/NR_best_hits_combined.txt"
 

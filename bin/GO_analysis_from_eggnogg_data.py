@@ -2,7 +2,7 @@ import pandas as pd
 from goatools.obo_parser import GODag
 
 # Input / output files
-input_file = "Files/eggnog_annotations.tsv"
+input_file = "Files/final.clust_proteins_longest_iso.emapper.annotations"
 obo_file = "db/go-basic.obo"
 
 output_file_all = "GO_terms_with_ontology.csv"

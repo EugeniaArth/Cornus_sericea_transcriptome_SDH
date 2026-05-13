@@ -1,20 +1,30 @@
-# Cornus_sericea_transcriptome_SDH
-Transcriptome assembly and functional annotation of Cornus sericea, with a focus on identifying and characterizing shikimate dehydrogenase (SDH) enzymes.
+# Identification of 3-dehydroquinate dehydratase/shikimate dehydrogenase variants from *Cornus sericea* L. 
+# by high-throughput transcriptome sequencing
+
+# Authors
+Eugenia Nikonorova, A. Zhuk
+
+1. All-Russian Scientific Research Institute of Medicinal and Aromatic Plants, Moscow, Russia
+2. ITMO University, 197101, St. Petersburg, Russia
+
+# Aim of the study:
+Transcriptome assembly and functional annotation of Cornus sericea, with a focus on identifying and characterizing 
+3-dehydroquinate dehydratase/shikimate dehydrogenases.
 
 
-**Sample preparation**
-Samples of young and mature leaves, immature fruits, buds and flowers of Cornus sericea L. were collected in July 2024 in Moscow, Russia
+# Sample preparation**
+Samples of young and mature leaves, immature fruits, buds and flowers of *Cornus sericea* L. were collected in July 2024 in Moscow, Russia
 Total RNA was extracted using RNeasy Mini Kit (QIAGEN, #74104) following manufacturer’s instructions. Frozen plant material was homogenized
 with a mortar and a pestle in liquid nitrogen. After isolation total RNA was treated by turbo DNAse (TURBO DNA-free Kit, ThermoFisher Scientific, #AM1907). 
 RNA concentration was quantified with Qubit RNA HS Assay Kit (ThermoFisher Scientific, #Q32852).  RNA integrity was assessed using RNA 6000 Pico Kit 
 for Bioanalyzer (Agilent Technologies, #5067-1513) before and after turbo DNAse treatment.
 
-*Short read (SR) sequencing*
+**Short read (SR) sequencing**
 
 A total 200.00 ng of total RNA was used for library preparation using TruSeq Stranded mRNA kit (Illumina). 
 Samples were paired-end (PE) sequenced using NovaSeq 6000, 2 x 101 bp (Illumina Technologies, San Diego, USA) platform
 
-*Long read (LR) sequencing*
+**Long read (LR) sequencing**
 
 For ONT libraries RNA was converted to cDNA using Mint cDNA synthesis kit (Evrogen, Moscow, Russia) with 20-25 cycles of amplification with the following modification: 
 1) cDNA synthesis is primed with oligonucleotides that contain not only dT part and adapter part but also custom barcode, specific for each sample; 
@@ -25,9 +35,9 @@ After that, reads were processed by a custom pipeline NTproc (https://github.com
 This work was performed using the core facilities of the LOPUKHIN FRCC PCM “Genomics, proteomics, metabolomics” 
 
 
-**Data analysis**
+# Data analysis**
 
-*Quality check*
+**Quality check**
 
 Quality check of the short-read (SR) and long-read (LR) reads was performed using fastqc tool for SR and NanoPlot for LR
 
@@ -50,7 +60,7 @@ fastp -i SR_1.fastq.gz -I SR_trimmed_1.fastq.gz  -o SR_2.fastq.gz  -O SR_trimmed
 
 ```
 
-*De novo assembly and assessing the assembly quality*
+**De novo assembly and assessing the assembly quality **
 
 *De novo* assembly was performed using trans2express (). 
 Before that, forward and reverse reads for Illumina  fastq files were concatenated forming two combined files 
@@ -124,7 +134,7 @@ samtools index total_LR_minimap2.bam
 
 ```
 
-Get Mapping Statistics
+To get mapping statistics, run:
 
 ```bash
 
@@ -140,18 +150,19 @@ exons, mRNA features.
 Therefore, on the next step I have performed functional annotation.
 
 
-**Annotation**
+# Annotation
 
-First split fasta into batches:
+First split fasta into batches - for annotation against NCBI NR and Refseq I have splitted fasta to multiple files - 1 per transcript:
 
 ```bash
-seqkit split -s 15 final.clust_transcripts_longest_iso.fasta -O split_batches
+
+seqkit split -s 1 final.clust_transcripts_longest_iso.fasta -O split_batches
 
 ```
 
 Search for annotation sources was performed against different databases.
 
-*Against UniProt:*
+**Against UniProt:**
 
 Download the UniProt Plant Protein Database
 
@@ -166,6 +177,7 @@ gunzip uniprot_plants_reviewed.fasta.gz
 Create a Uniprot  Database
 
 ```bash
+
 makeblastdb -in uniprot_plants_reviewed.fasta -dbtype prot -out uniprot_plants_db
 
 ```
@@ -173,7 +185,7 @@ makeblastdb -in uniprot_plants_reviewed.fasta -dbtype prot -out uniprot_plants_d
 Then use script Uniprot.blastx.best.sh - the best hits are saved as uniprot_best_hits
 
 
-*Against Refseq:*
+**Against Refseq:**
 
 Download the Refseq Plant Protein Database
 
@@ -183,6 +195,7 @@ wget -r -nd -A "*.protein.faa.gz" ftp://ftp.ncbi.nlm.nih.gov/refseq/release/plan
 gunzip *.protein.faa.gz      # Unzips all
 
 cat *.protein.faa > all_refseq_proteins.faa
+
 ```
 
 Create a Refseq  Database:
@@ -192,19 +205,23 @@ diamond makedb --in all_refseq_proteins.faa -d refseq_proteins
 
 ```
 
-Then use script Refseq.blastx.best.sh  - the best hits are saved as refseq_best_hits.txt
+Then use script Refseq.blastx.best.sh  -  the best hits are saved as refseq_best_hits.txt
  
-*Against NCBI NR:*
+**Against NCBI NR:**
 
 Download the database
+
 ```bash
+
 update_blastdb.pl --decompress nr
 
 ```
 
 Create a database:
+
 ```bash
 makeblastdb -in nr_viridiplantae.fasta -dbtype prot -out nr_viridiplantae_db
+
 ```
 Confirm the database is functional:
 
@@ -218,30 +235,51 @@ Move it in separate folder:
 ```bash 
 mkdir viridiplantae_db
 mv nr_viridiplantae* viridiplantae_db/
+
 ```
 
 Use script NR_anno.sh  - the best hits are saved as NR_best_hits_combined.txt
 
-*KEGG pathway annotation*
+**KEGG pathway annotation**
 
 It was performed using https://www.genome.jp/kaas-bin/kaas_main
-Protein sequencies were send with parameters:
+Protein sequences were send with parameters:
 Sp: ath, aly, gmx, gsj, fve, pop, jre, vvi, sly, nta, osa, zma, dct, rcn, pper, egr, brp, cit, tcc, qsu, oeu, bvg, dosa, ppp, peq, aof, atr, 
 cre, mng, apro, olu, cme, gsl, ccp, psom, ini, peu, rcu
 
 
-*Annotation against KOG/COG*
+**Annotation against KOG/COG **
 
-It was performed using EggNOG-Mapper
-GO terms were parsed and extracted using python script GO_analysis_from_eggnogg_data.py
+It was performed using EggNOG-Mapper tool. After installation, we must download the required database files and then run it on 
 
+```bash 
+
+python /eggnog-mapper-2.1.12/download_eggnog_data.py
+
+python /eggnog-mapper-2.1.12/emapper.py -i final.clust_proteins_longest_iso.fasta \
+               -o  EggNOG --cpu 30
+
+```
+
+The resulted file is called  final.clust_proteins_longest_iso.emapper.annotations - and it will contain multiple lines  with COG, KOG and GO 
+annotations. Because GO terms are always redundant, on the next step we parse GO terms and extract them using python script GO_analysis_from_eggnogg_data.py
 For GO terms, filtering for the highest GO level for each transcript was performed, to avoid exessive and unnesessary data.
 
-- Addition of data to gff3 
- 
- After the all source files were recieved, we have performed addition of data to basic gff3 file generated by trans2express pipeline using 
- python script gff3_annotation.py. 
 
- The priority of annotation was folowing: RefSeq > UniProt > NR
+**Addition of data to gff3**
+ 
+ After the all source files were recieved, we have performed addition of data to basic gff3 file generated by trans2express pipeline 
+ (final.clust_annotation_longest_iso.gff3) using  python script gff3_annotation.py. 
+ 
+```bash 
+
+python gff3_annotation.py
+
+```
+
+The priority of annotation was folowing: RefSeq > UniProt > NR
 
 After annotation, the basic analysis and plots were created. The code used are present at Analysis.Rmd file
+
+
+
