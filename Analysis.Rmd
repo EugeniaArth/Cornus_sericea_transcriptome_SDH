@@ -18,7 +18,7 @@ library(viridis)
 ```
 
 
-BUSCO results plot
+#1 Plotting BUSCO results 
 
 ```{r}
 library(ggplot2)
@@ -72,7 +72,7 @@ ggsave("plots/busco_statistics.png", plot = p, width = 10, height = 6, dpi = 300
 ```
 
 
-Analyse GO annotation and create a figure
+#2 Analyse GO annotation and create a figure
 
 ```{r, error=FALSE, warning=FALSE }
 
@@ -130,12 +130,11 @@ ggsave("plots/GO_ontology_barplot.png", width = 10, height = 10, dpi = 300)
 
 
 ```
-
+#3 Analyse KEGG pathway and create a figure
 
 ```{r, error=FALSE, warning=FALSE }
 
-
-# Read your KEGG analysis data
+# Read KEGG analysis data
 kegg_data <- readLines("Files/KEGG/KEGG_pathways.txt")
 
 # Extract groups, descriptors, and counts
@@ -238,28 +237,17 @@ ggdotchart(summary_df, x = "Group", y = "Total_Count",
 ggsave("plots/KEGG_plot.png", width = 10, height = 10, dpi = 300)
 
 
-
-
-```
-
-Total number of classes KEGG
-
-```{r}
-class_totals <- kegg_df %>%
-  group_by(Class) %>%
-  summarise(Total_Count = sum(Count)) %>%
-  arrange(desc(Total_Count))
+#Total number of classes KEGG 
 
 kegg_df %>%
   summarise(Total_Count = sum(Count)) %>%
   arrange(desc(Total_Count))
 sum(kegg_df$Count, na.rm = TRUE)
 
-
-print(class_totals)
 ```
 
-Sum of annotation results in general, from resulted best_hits, etc files
+
+#4 Sum of annotation results in general, from resulted best_hits, etc files
 
 ```{r}
 # Create vectors

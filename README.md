@@ -1,5 +1,4 @@
-# Identification of 3-dehydroquinate dehydratase/shikimate dehydrogenase variants from *Cornus sericea* L. 
-# by high-throughput transcriptome sequencing
+# Identification of 3-dehydroquinate dehydratase/shikimate dehydrogenase variants from *Cornus sericea* L. by high-throughput transcriptome sequencing
 
 # Authors
 Eugenia Nikonorova, A. Zhuk
@@ -35,7 +34,7 @@ After that, reads were processed by a custom pipeline NTproc (https://github.com
 This work was performed using the core facilities of the LOPUKHIN FRCC PCM “Genomics, proteomics, metabolomics” 
 
 
-# Data analysis**
+# Data analysis
 
 **Quality check**
 
@@ -60,7 +59,7 @@ fastp -i SR_1.fastq.gz -I SR_trimmed_1.fastq.gz  -o SR_2.fastq.gz  -O SR_trimmed
 
 ```
 
-**De novo assembly and assessing the assembly quality **
+**De novo assembly and assessing the assembly quality**
 
 *De novo* assembly was performed using trans2express (). 
 Before that, forward and reverse reads for Illumina  fastq files were concatenated forming two combined files 
@@ -143,7 +142,7 @@ samtools flagstat total_LR_minimap2.bam
 
 ```
 
-The results were summarized in busco.csv file and visualized using code in Analysis.Rmd file  #1 Plotting BUSCO results 
+
 
 At this step, final.clust_annotation_longest_iso.gff3 contains structural annotation of the assembly - with UTR, CDS, gene, 
 exons, mRNA features. 
@@ -248,7 +247,7 @@ Sp: ath, aly, gmx, gsj, fve, pop, jre, vvi, sly, nta, osa, zma, dct, rcn, pper, 
 cre, mng, apro, olu, cme, gsl, ccp, psom, ini, peu, rcu
 
 
-**Annotation against KOG/COG **
+**Annotation against KOG/COG**
 
 It was performed using EggNOG-Mapper tool. After installation, we must download the required database files and then run it on 
 
@@ -280,6 +279,21 @@ python gff3_annotation.py
 The priority of annotation was folowing: RefSeq > UniProt > NR
 
 After annotation, the basic analysis and plots were created. The code used are present at Analysis.Rmd file
+
+
+# Extracting 3-dehydroquinate dehydratase/shikimate dehydrogenase data and sequences
+
+# Visualization of data
+
+The code for data visualization are saved in Analysis.Rmd
+
+1. BUSCO results were summarized in busco.csv file and visualized using code in  #1 Plotting BUSCO results chunk
+2. Data from GO annotation may be visualized using #2 Analyse GO annotation and create a figure chunk
+3. KEGG pathways - chunk #3 Analyse KEGG pathway and create a figure
+4. Summary of the annotation tools - chunk #4 Sum of annotation results in general, from resulted best_hits, etc files
+5. Because the priority of annotation was RefSeq > UniProt > NR, not all data could be used in final gff3 file.
+To count, we use the code  #5 Count annotions in final gff3 file
+6. Plot the result - chunk #6 Plot the counts of annotions in final gff3 file
 
 
 
