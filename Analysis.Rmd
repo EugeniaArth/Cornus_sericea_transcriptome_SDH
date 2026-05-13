@@ -613,7 +613,7 @@ reference_name <- "AtSDH"
 # AtSDH residue positions of interest
 domains <- list(
   DQD = c(124, 126, 128, 155, 214, 241, 269, 271, 279, 291, 304),
-  SDH_substrate = c(336, 338, 381, 385, 406, 407, 422, 423, 550, 578, 582),
+  SDH_substrate = c( 336, 338,  381, 385, 406, 407, 422, 423, 550, 578, 582),
   SDH_cofactor = c(483, 484, 485, 488, 522, 523)
 )
 
@@ -1016,7 +1016,7 @@ p2 <- p +
 
 print(p2)
 
-ggsave("combined_domains_alignment_with_metadata2.png", p2,
+ggsave("plots/Figure 4_2.png", p2,
        width = 12, height = 12, dpi = 300, bg = "white")
 
 
