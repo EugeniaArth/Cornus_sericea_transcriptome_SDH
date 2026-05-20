@@ -463,7 +463,7 @@ ggsave("plots/sequence_identity_heatmap.png", p, width = 6, height = 5, dpi = 60
 
 ```
 
-NWK tree as a dendrogram beside the heatmap 
+#7 Plots for Figure 2C, D - NWK tree as a dendrogram beside the heatmap 
 
 ```{r}
 
@@ -569,7 +569,399 @@ dev.off()
 ```
 
 
-* Plot the figure 4 from tree and aln data *
+#9  Figure 3 - Sequence logo plots of cpTP- and non-cpTP amino acids (the first 80)
+
+```{r}
+
+if (!requireNamespace(c("tidyverse",
+  "readxl",
+  "Biostrings",
+  "ggseqlogo",
+  "patchwork"), quietly = TRUE)) install.packages(c("tidyverse",
+  "readxl",
+  "Biostrings",
+  "ggseqlogo",
+  "patchwork"))
+
+
+library(tidyverse)
+library(readxl)
+library(Biostrings)
+library(ggseqlogo)
+library(patchwork)
+
+# METADATA FOR cpTP presence (containd data on cpTP presence, QDH and GA-forming activity)
+
+meta_file <- "Files/Alignment/metadata_fig_4.xlsx"
+meta_raw <- read_xlsx(meta_file)
+
+#rename columns for simplicity
+colnames(meta_raw) <- c("seq_id", "gallate", "qdh", "cp")
+
+meta <- meta_raw %>%
+  mutate(
+    gallate = as.numeric(gallate) > 0,
+    qdh = as.numeric(qdh) > 0,
+    cp = as.numeric(cp) > 0
+  )
+
+# input fasta with DQD/SDHs 
+
+fasta_file <- "Files/Alignment/For_alignment.fasta"
+faa <- readAAStringSet(fasta_file)
+
+seq_df <- tibble(
+  seq_id = names(faa),
+  sequence = as.character(faa)
+)
+
+# clean IDs if FASTA headers contain descriptions
+seq_df <- seq_df %>%
+  mutate(seq_id = str_extract(seq_id, "^[^ ]+"))
+
+# EXTRACT FIRST 80 AA
+
+seq_df <- seq_df %>%
+  mutate(first50 = str_sub(sequence, 1, 50))
+
+
+# merge metadata and fasta
+
+dat <- seq_df %>%
+  inner_join(meta, by = "seq_id")
+
+
+# SPLIT GROUPS
+
+cp_yes <- dat %>%
+  filter(cp == "TRUE") %>%
+  pull(first50)
+
+cp_no <- dat %>%
+  filter(cp != "TRUE" | is.na(cp)) %>%
+  pull(first50)
+
+
+
+
+# PROBABILITY LOGOS
+
+
+pp1 <- ggseqlogo(cp_yes, method = "prob") +
+  ggtitle("Chloroplast transit peptide predicted") +
+  labs(
+    x = NULL,
+    y = "Relative occurrence"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(size = 8),
+    legend.position = "none"
+  )
+
+pp2 <- ggseqlogo(cp_no, method = "prob") +
+  ggtitle("No chloroplast transit peptide") +
+  labs(
+    x = "Residue position",
+    y = "Relative occurrence"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(size = 8),
+    legend.position = "none"
+  )
+
+
+# BITS LOGOS
+
+pp3 <- ggseqlogo(cp_yes, method = "bits") +
+  ggtitle("Chloroplast transit peptide predicted") +
+  labs(
+    x = NULL,
+    y = "Bits"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(size = 8),
+    legend.position = "none"
+  )
+
+pp4 <- ggseqlogo(cp_no, method = "bits") +
+  ggtitle("No chloroplast transit peptide") +
+  labs(
+    x = "Residue position",
+    y = "Bits"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(size = 8),
+    legend.position = "none"
+  )
+
+
+# COMBINE INTO ONE FIGURE
+
+
+final_logo_plot <-
+  (pp1 | pp3) /
+  (pp2 | pp4) +
+  plot_annotation(
+    tag_levels = "A"
+  )
+
+print(final_logo_plot)
+
+
+# SAVE
+
+
+ggsave(
+  "plots/cpTP_combined_sequence_logos.png",
+  final_logo_plot,
+  width = 20,
+  height = 8,
+  dpi = 300
+)
+
+
+
+```
+
+#8A calculation of Hydrophobicity profile and Uncharged Amino Acids of cpTP
+```{r}
+
+library(tidyverse)
+library(Biostrings)
+library(ggseqlogo)
+library(patchwork)
+library(Peptides)
+library(zoo)
+library(readxl)
+
+
+# Kyte-Doolittle hydrophobicity scale
+
+hydro_scale <- c(
+  A = 1.8,
+  R = -4.5,
+  N = -3.5,
+  D = -3.5,
+  C = 2.5,
+  Q = -3.5,
+  E = -3.5,
+  G = -0.4,
+  H = -3.2,
+  I = 4.5,
+  L = 3.8,
+  K = -3.9,
+  M = 1.9,
+  F = 2.8,
+  P = -1.6,
+  S = -0.8,
+  T = -0.7,
+  W = -0.9,
+  Y = -1.3,
+  V = 4.2
+)
+
+
+# Hydrophobicity profile
+
+calc_hydro <- function(seq) {
+
+  aa <- strsplit(seq, "")[[1]]
+
+  hydro <- hydro_scale[aa]
+
+  tibble(
+    pos = seq_along(hydro),
+    hydro = as.numeric(hydro)
+  )
+}
+
+
+# Residue frequency by position
+
+
+count_residue <- function(seqs, residues) {
+
+  split_seqs <- lapply(seqs, function(x)
+    strsplit(x, "")[[1]])
+
+  maxlen <- max(sapply(split_seqs, length))
+
+  mat <- matrix(NA, nrow = length(split_seqs),
+                ncol = maxlen)
+
+  for(i in seq_along(split_seqs)) {
+    mat[i, 1:length(split_seqs[[i]])] <- split_seqs[[i]]
+  }
+
+  freq <- apply(mat, 2, function(col) {
+    mean(col %in% residues, na.rm = TRUE)
+  })
+
+  tibble(
+    pos = seq_along(freq),
+    freq = freq
+  )
+}
+
+#Hydrophobicity analysis
+hydro_yes <- map_df(cp_yes,
+                    calc_hydro,
+                    .id = "seq") %>%
+  group_by(pos) %>%
+  summarise(mean_hydro = mean(hydro, na.rm = TRUE)) %>%
+  mutate(group = "cpTP")
+
+hydro_no <- map_df(cp_no,
+                   calc_hydro,
+                   .id = "seq") %>%
+  group_by(pos) %>%
+  summarise(mean_hydro = mean(hydro, na.rm = TRUE)) %>%
+  mutate(group = "non-cp")
+
+hydro_all <- bind_rows(hydro_yes, hydro_no)
+
+#Uncharged Amino Acids
+unch_yes <- count_residue(cp_yes,
+                         c("S", "T", "C", "N", "Q", "Y",
+                           "G","A", "V", "L","I", "M", "F", "W", "P")) %>%
+  mutate(group = "cpTP")
+
+unch_no <- count_residue(cp_no,
+                       c("S", "T", "C", "N", "Q", "Y",
+                           "G","A", "V", "L","I", "M", "F", "W", "P")) %>%
+  mutate(group = "non-cp")
+
+unch_df <- bind_rows(unch_yes, unch_no)
+
+```
+
+
+#8B Plot the data of Hydrophobicity profile and Uncharged Amino Acids of cpTP
+
+```{r}
+pub_theme <- theme_minimal(base_size = 12) +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    #axis.title = element_text(face = "bold"),
+    axis.text = element_text(color = "black"),
+    plot.title = element_text(
+      face = "bold",
+      size = 12
+    ),
+    legend.title = element_blank(),
+    legend.position = "top",
+    legend.text = element_text(size = 12)
+  )
+
+# ==========================================
+# COLORS
+# ==========================================
+
+my_cols <- c(
+  "cpTP" = "#2E8B57",   # green
+  "non-cp" = "#D95F02" # orange
+)
+
+# ==========================================
+# PANEL A — HYDROPHOBICITY
+# ==========================================
+
+p_hydro <- ggplot(
+  hydro_all,
+  aes(
+    x = pos,
+    y = mean_hydro,
+    color = group
+  )
+) +
+  geom_smooth(
+    se = FALSE,
+    linewidth = 1.0,
+    span = 0.3
+  ) +
+  scale_color_manual(values = my_cols) +
+  scale_x_continuous(
+    breaks = seq(0, 80, 10)
+  ) +
+  labs(
+    x = "Amino acid position",
+    y = "Mean hydrophobicity",
+    title = "Hydrophobicity profile"
+  ) +
+  theme_classic() +
+  pub_theme
+
+# ==========================================
+# PANEL B — UNCHARGED AA
+# ==========================================
+
+p_unch <- ggplot(
+  unch_df,
+  aes(
+    x = pos,
+    y = freq * 100,
+    color = group
+  )
+) +
+  geom_smooth(
+    se = FALSE,
+    linewidth = 1.0,
+    span = 0.3
+  ) +
+  scale_color_manual(values = my_cols) +
+  scale_x_continuous(
+    breaks = seq(0, 80, 10)
+  ) +
+  labs(
+    x = "Amino acid position",
+    y = "Uncharged residues (%)",
+    title = "Uncharged amino acids"
+  ) +
+  theme_classic() +
+  pub_theme +
+  theme(
+    legend.position = "none"
+  )
+
+# ==========================================
+# COMBINE
+# ==========================================
+
+final_plot <- p_hydro / p_unch +
+  plot_annotation(
+    title = "",
+    theme = theme(
+      plot.title = element_text(
+        face = "bold",
+        size = 20,
+        hjust = 0.5
+      )
+    )
+  )
+
+final_plot
+
+ggsave(
+  "plots/cpTP_characteristics.png",
+  final_plot,
+  width = 10,
+  height = 5,
+  dpi = 600
+)
+```
+
+
+
+#9 Figure 5 - use DQD/SDHs alignment, data from phylogenetic tree and metadata (cpTP presence, QDH and GA-forming activity)
 
 
 ```{r}
@@ -611,11 +1003,12 @@ domains <- list(
 # Number of visual spacer columns between blocks
 spacer <- 3
 
-# METADATA FOR DOTS
+# METADATA FOR DOTS (containd data on cpTP presence, QDH and GA-forming activity)
 
 meta_file <- "Files/Alignment/metadata_fig_4.xlsx"
 meta_raw <- read_xlsx(meta_file)
 
+#rename columns for simplicity
 colnames(meta_raw) <- c("seq_id", "gallate", "qdh", "cp")
 
 meta <- meta_raw %>%
@@ -898,8 +1291,6 @@ p <- p +
     fontface = ifelse(label_df$is_highlight, "bold", "plain")
   )
 
-# MODIFY PLOT WITH METADATA
-
 
 # get exact row y positions from ggmsa plot
 gb <- ggplot_build(p)
@@ -913,7 +1304,6 @@ row_map <- data.frame(
   seq_id = names(aa_set),
   y = row_y
 )
-
 
 
 #annotation

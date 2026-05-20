@@ -1,13 +1,14 @@
 # Identification of 3-dehydroquinate dehydratase/shikimate dehydrogenase variants from *Cornus sericea* L. by high-throughput transcriptome sequencing
 
 # Authors
-Eugenia Nikonorova, A. Zhuk
 
-1. All-Russian Scientific Research Institute of Medicinal and Aromatic Plants, Moscow, Russia
-2. ITMO University, 197101, St. Petersburg, Russia
+Eugenia Nikonorova
+
+All-Russian Scientific Research Institute of Medicinal and Aromatic Plants, Moscow, Russia
+e-mail: gatiatulinaer@gmail.com
 
 # Aim of the study:
-Transcriptome assembly and functional annotation of Cornus sericea, with a focus on identifying and characterizing 
+Transcriptome assembly and functional annotation of *Cornus sericea*, with a focus on identifying and characterizing 
 3-dehydroquinate dehydratase/shikimate dehydrogenases.
 
 
@@ -281,11 +282,13 @@ The priority of annotation was folowing: RefSeq > UniProt > NR
 After annotation, the basic analysis and plots were created. The code used are present at Analysis.Rmd file
 
 
-# Extracting 3-dehydroquinate dehydratase/shikimate dehydrogenase data and sequences
+# Extracting 3-dehydroquinate dehydratase/shikimate dehydrogenases 
+
+
 
 # Visualization of data
 
-The code for data visualization are saved in Analysis.Rmd
+The code chunks for data visualization are saved in Analysis.Rmd
 
 1. BUSCO results were summarized in busco.csv file and visualized using code in  #1 Plotting BUSCO results chunk
 2. Data from GO annotation may be visualized using #2 Analyse GO annotation and create a figure chunk
