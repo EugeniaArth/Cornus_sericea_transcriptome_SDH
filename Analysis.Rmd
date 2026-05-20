@@ -15,6 +15,7 @@ library(stringr)
 library(ggtree)
 library(reshape2)
 library(viridis)
+library(readxl)
 ```
 
 
@@ -75,8 +76,6 @@ ggsave("plots/busco_statistics.png", plot = p, width = 10, height = 6, dpi = 300
 #2 Analyse GO annotation and create a figure
 
 ```{r, error=FALSE, warning=FALSE }
-
-
 
 go_df <- read.csv("Files/GO_terms_highest_level_per_transcript.csv")
 
@@ -279,14 +278,17 @@ ggsave("plots/Annotation_statistics.png", width = 10, height = 6, dpi = 300)
 ```
 
 
-Count annotions in final gff3 file
+#5 Count annotions in final gff3 file
 
-```{r, eval=FALSE}
+
+```{r, error=FALSE, warning=FALSE}
+#Install  package
 library(reticulate)
 py_install("pandas")
 ```
 
 ```{python}
+#Count annotions in final gff3 file
 import pandas as pd
 
 annotated_gff = "Files/annotated_final.gff3"
@@ -347,13 +349,14 @@ gff3_annotation_res = pd.DataFrame({
 
 ```
 
-
-```{r}
+#6 Plot the counts of annotions in final gff3 file
+```{r, error=FALSE, warning=FALSE}
 library(reticulate)
 
 # get Python object
-tmp <- py$gff3_annotation_res$to_dict("list")
-gff3_annotation_res <- as.data.frame(py_to_r(tmp))
+#tmp_res <- py$gff3_annotation_res$to_dict("list")
+tmp_res <- py$gff3_annotation_res
+gff3_annotation_res <- as.data.frame(py_to_r(tmp_res))
 new_line <- c("Unannotated", 2077)
 gff3_annotation_res <- rbind(gff3_annotation_res, new_line)
 
@@ -382,9 +385,9 @@ ggsave("plots/Annotation_statistics_gff3.png", width = 10, height = 6, dpi = 300
 ```
 
 
-DQD/SDH analysis
+**DQD/SDH analysis**
 
-Sequense identity plot (from matrix after MAFFT alignment)
+#6 Sequense identity plot (from matrix after MAFFT alignment)
 
 ```{r}
 
@@ -1004,11 +1007,10 @@ p2 <- p +
 
 print(p2)
 
-ggsave("plots/Figure 4_2.png", p2,
+ggsave("plots/Figure 4.png", p2,
        width = 12, height = 12, dpi = 300, bg = "white")
 
 
 ```
 
 
-`
