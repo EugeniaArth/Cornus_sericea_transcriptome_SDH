@@ -731,8 +731,9 @@ ggsave(
 
 ```
 
-#8A calculation of Hydrophobicity profile and Uncharged Amino Acids of cpTP
+#8A  Percents of uncharged, acidic, basic AA and Pro in cpTP-predicted and non-cpTP DQD/SDH sequences 
 ```{r}
+library(skimr)
 
 library(tidyverse)
 library(Biostrings)
@@ -769,82 +770,96 @@ hydro_scale <- c(
 )
 
 
-# Hydrophobicity profile
+aa_groups <- list(
+  Acidic = c("D","E"),
+  Basic = c("K","R","H"),
+  Uncharged = c("S","T","C","N","Q","Y",
+                "G","A","V","L","I","M","F","W"),
+  Proline = c("P")
+)
 
-calc_hydro <- function(seq) {
 
-  aa <- strsplit(seq, "")[[1]]
+aa_percent <- function(seqs, residues) {
+  sapply(seqs, \(x)
+    mean(strsplit(x, "")[[1]] %in% residues) * 100)
+}
 
-  hydro <- hydro_scale[aa]
+# table
+
+all_seqs <- c(cp_yes, cp_no)
+
+aa_table <- tibble(
+  Sequence = names(all_seqs),
+  Group = c(
+    rep("cpTP", length(cp_yes)),
+    rep("non-cp", length(cp_no))
+  )
+)
+
+for(i in names(aa_groups)) {
+
+  aa_table[[paste0(i, "_percent")]] <-
+    aa_percent(all_seqs, aa_groups[[i]])
+}
+
+print(aa_table)
+
+# summary stats 
+
+#function to calculate the total number of residues belonging to a chosen AA class, the total number of amino acids overall,
+#the total number of amino acids overall - then chisq.test()
+
+count_group <- function(seqs, residues) { 
+
+  aa <- unlist(strsplit(paste(seqs, collapse=""), ""))
 
   tibble(
-    pos = seq_along(hydro),
-    hydro = as.numeric(hydro)
+    target = sum(aa %in% residues),
+    total = length(aa)
   )
 }
 
+# summary table 
 
-# Residue frequency by position
+summary_table <- map_df(
+  names(aa_groups),
+  function(feature) {
 
+    cp <- count_group(
+      cp_yes,
+      aa_groups[[feature]]
+    )
 
-count_residue <- function(seqs, residues) {
+    non <- count_group(
+      cp_no,
+      aa_groups[[feature]]
+    )
 
-  split_seqs <- lapply(seqs, function(x)
-    strsplit(x, "")[[1]])
+    test <- prop.test(
+      x = c(cp$target, non$target),
+      n = c(cp$total, non$total)
+    )
 
-  maxlen <- max(sapply(split_seqs, length))
+    tibble(
+      Feature = feature,
 
-  mat <- matrix(NA, nrow = length(split_seqs),
-                ncol = maxlen)
+      cpTP_percent =
+        round(cp$target / cp$total * 100, 2),
 
-  for(i in seq_along(split_seqs)) {
-    mat[i, 1:length(split_seqs[[i]])] <- split_seqs[[i]]
+      noncp_percent =
+        round(non$target / non$total * 100, 2),
+
+      p_value =
+        signif(test$p.value, 3)
+    )
   }
+)
 
-  freq <- apply(mat, 2, function(col) {
-    mean(col %in% residues, na.rm = TRUE)
-  })
-
-  tibble(
-    pos = seq_along(freq),
-    freq = freq
-  )
-}
-
-#Hydrophobicity analysis
-hydro_yes <- map_df(cp_yes,
-                    calc_hydro,
-                    .id = "seq") %>%
-  group_by(pos) %>%
-  summarise(mean_hydro = mean(hydro, na.rm = TRUE)) %>%
-  mutate(group = "cpTP")
-
-hydro_no <- map_df(cp_no,
-                   calc_hydro,
-                   .id = "seq") %>%
-  group_by(pos) %>%
-  summarise(mean_hydro = mean(hydro, na.rm = TRUE)) %>%
-  mutate(group = "non-cp")
-
-hydro_all <- bind_rows(hydro_yes, hydro_no)
-
-#Uncharged Amino Acids
-unch_yes <- count_residue(cp_yes,
-                         c("S", "T", "C", "N", "Q", "Y",
-                           "G","A", "V", "L","I", "M", "F", "W", "P")) %>%
-  mutate(group = "cpTP")
-
-unch_no <- count_residue(cp_no,
-                       c("S", "T", "C", "N", "Q", "Y",
-                           "G","A", "V", "L","I", "M", "F", "W", "P")) %>%
-  mutate(group = "non-cp")
-
-unch_df <- bind_rows(unch_yes, unch_no)
+print(summary_table)
 
 ```
 
-
-#8B Plot the data of Hydrophobicity profile and Uncharged Amino Acids of cpTP
+#8B Plot the data of Hydrophobicity profile, Uncharged, Acidic, Basic Amino Acids of cpTP and non-cpTP DQD/SDHs 
 
 ```{r}
 pub_theme <- theme_minimal(base_size = 12) +
@@ -883,10 +898,7 @@ p_hydro <- ggplot(
     color = group
   )
 ) +
-  geom_smooth(
-    se = FALSE,
-    linewidth = 1.0,
-    span = 0.3
+   geom_line(
   ) +
   scale_color_manual(values = my_cols) +
   scale_x_continuous(
@@ -912,10 +924,8 @@ p_unch <- ggplot(
     color = group
   )
 ) +
-  geom_smooth(
-    se = FALSE,
-    linewidth = 1.0,
-    span = 0.3
+  geom_line(
+    
   ) +
   scale_color_manual(values = my_cols) +
   scale_x_continuous(
@@ -933,10 +943,69 @@ p_unch <- ggplot(
   )
 
 # ==========================================
+# PANEL C — ACIDIC AA
+# ==========================================
+
+p_acid <- ggplot(
+  acid_df,
+  aes(
+    x = pos,
+    y = freq * 100,
+    color = group
+  )
+) +
+   geom_line(
+  ) +
+  scale_color_manual(values = my_cols) +
+  scale_x_continuous(
+    breaks = seq(0, 80, 10)
+  ) +
+  labs(
+    x = "Amino acid position",
+    y = "Acidic residues (%)",
+    title = "Acidic amino acids"
+  ) +
+  theme_classic() +
+  pub_theme +
+  theme(
+    legend.position = "none"
+  )
+
+# ==========================================
+# PANEL D — BASIC AA
+# ==========================================
+
+p_base <- ggplot(
+  basic_df,
+  aes(
+    x = pos,
+    y = freq * 100,
+    color = group
+  )
+) +
+   geom_line(
+  ) +
+  scale_color_manual(values = my_cols) +
+  scale_x_continuous(
+    breaks = seq(0, 80, 10)
+  ) +
+  labs(
+    x = "Amino acid position",
+    y = "Basic residues (%)",
+    title = "Basic amino acids"
+  ) +
+  theme_classic() +
+  pub_theme +
+  theme(
+    legend.position = "none"
+  )
+
+
+# ==========================================
 # COMBINE
 # ==========================================
 
-final_plot <- p_hydro / p_unch +
+final_plot <- p_hydro / p_unch / p_acid / p_base +
   plot_annotation(
     title = "",
     theme = theme(
@@ -954,7 +1023,7 @@ ggsave(
   "plots/cpTP_characteristics.png",
   final_plot,
   width = 10,
-  height = 5,
+  height = 15,
   dpi = 600
 )
 ```

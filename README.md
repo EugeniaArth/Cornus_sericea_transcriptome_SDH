@@ -284,6 +284,61 @@ After annotation, the basic analysis and plots were created. The code used are p
 
 # Extracting 3-dehydroquinate dehydratase/shikimate dehydrogenases 
 
+At the beginning, I have search for DQD/SDHs presence:
+
+```bash
+
+grep -i "bifunctional 3-dehydroquinate dehydratase/shikimate dehydrogenase" annotated_final.gff3 \
+> | cut -f3 \
+> | sort \
+> | uniq -c
+   5 CDS
+   5 exon
+   5 five_prime_UTR
+   5 gene
+   5 mRNA
+   5 three_prime_UTR
+```
+
+A total 5 mRNA with corresponding UTRs and CDSs.
+Further, more detailed output with transcript name and coordinates was created:
+
+```bash
+grep -i "bifunctional 3-dehydroquinate dehydratase/shikimate dehydrogenase" annotated_final.gff3 \
+| awk '
+BEGIN{
+    OFS="\t";
+    print "ID","Feature","Start","End"
+}
+$3=="mRNA" || $3=="five_prime_UTR" || $3=="CDS" || $3=="three_prime_UTR" {
+    print $1,$3,$4,$5
+}'
+
+ID	Feature	Start	End
+NODE_10980_length_2779_cov_121.715385_g1243_i5	mRNA	1	2779
+NODE_10980_length_2779_cov_121.715385_g1243_i5	five_prime_UTR	1	130
+NODE_10980_length_2779_cov_121.715385_g1243_i5	CDS	131	1633
+NODE_10980_length_2779_cov_121.715385_g1243_i5	three_prime_UTR	1634	2779
+NODE_18517_length_2241_cov_255.196168_g8755_i0	mRNA	1	2241
+NODE_18517_length_2241_cov_255.196168_g8755_i0	five_prime_UTR	2018	2241
+NODE_18517_length_2241_cov_255.196168_g8755_i0	CDS	452	2017
+NODE_18517_length_2241_cov_255.196168_g8755_i0	three_prime_UTR	1	451
+NODE_20612_length_2133_cov_1535.833013_g8101_i1	mRNA	1	2133
+NODE_20612_length_2133_cov_1535.833013_g8101_i1	five_prime_UTR	1894	2133
+NODE_20612_length_2133_cov_1535.833013_g8101_i1	CDS	295	1893
+NODE_20612_length_2133_cov_1535.833013_g8101_i1	three_prime_UTR	1	294
+NODE_21648_length_2083_cov_1398.299410_g8244_i1	mRNA	1	2083
+NODE_21648_length_2083_cov_1398.299410_g8244_i1	five_prime_UTR	1951	2083
+NODE_21648_length_2083_cov_1398.299410_g8244_i1	CDS	367	1950
+NODE_21648_length_2083_cov_1398.299410_g8244_i1	three_prime_UTR	1	366
+NODE_29040_length_1767_cov_22.706636_g12409_i1	mRNA	1	1767
+NODE_29040_length_1767_cov_22.706636_g12409_i1	five_prime_UTR	1	112
+NODE_29040_length_1767_cov_22.706636_g12409_i1	CDS	113	1672
+NODE_29040_length_1767_cov_22.706636_g12409_i1	three_prime_UTR	1673	1767
+
+```
+
+
 
 
 # Visualization of data
