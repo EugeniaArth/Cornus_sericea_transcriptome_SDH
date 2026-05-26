@@ -12,7 +12,7 @@ Transcriptome assembly and functional annotation of *Cornus sericea*, with a foc
 3-dehydroquinate dehydratase/shikimate dehydrogenases.
 
 
-# Sample preparation**
+# Sample preparation
 Samples of young and mature leaves, immature fruits, buds and flowers of *Cornus sericea* L. were collected in July 2024 in Moscow, Russia
 Total RNA was extracted using RNeasy Mini Kit (QIAGEN, #74104) following manufacturer’s instructions. Frozen plant material was homogenized
 with a mortar and a pestle in liquid nitrogen. After isolation total RNA was treated by turbo DNAse (TURBO DNA-free Kit, ThermoFisher Scientific, #AM1907). 
@@ -62,10 +62,8 @@ fastp -i SR_1.fastq.gz -I SR_trimmed_1.fastq.gz  -o SR_2.fastq.gz  -O SR_trimmed
 
 **De novo assembly and assessing the assembly quality**
 
-*De novo* assembly was performed using trans2express (). 
-Before that, forward and reverse reads for Illumina  fastq files were concatenated forming two combined files 
+Before assembly,forward and reverse reads for Illumina  fastq files were concatenated forming two combined files 
 for forward and reverse reads. For Nanopore samples, fastq files were also concatenated forming one combined file.
-
 
 ```bash
 
@@ -74,12 +72,14 @@ python trans2express.py  -1 concatenated_1.fastq.gz -2 concatenated_2.fastq.gz -
 
 ```
 
+*De novo* assembly was performed using trans2express tool (https://github.com/albidgy/trans2express
+). 
+
 In the resulting Assembly/ folder it contains a subfolder, the most important final_assembly/ contain the files:
 1) final.clust_cds_longest_iso.fasta
 2) final.clust_proteins_longest_iso.fasta
 3) final.clust_transcripts_longest_iso.fasta
 4) final.clust_annotation_longest_iso.gff3
-
 
 Initial assembly quality was evaluated using rnaQUAST using Cornus florida genome (NW_026775571.1) as a reference:
 
@@ -142,8 +142,6 @@ samtools flagstat total_SR_minimap2.bam
 samtools flagstat total_LR_minimap2.bam
 
 ```
-
-
 
 At this step, final.clust_annotation_longest_iso.gff3 contains structural annotation of the assembly - with UTR, CDS, gene, 
 exons, mRNA features. 
@@ -338,6 +336,57 @@ NODE_29040_length_1767_cov_22.706636_g12409_i1	three_prime_UTR	1673	1767
 
 ```
 
+Then, the mRNA and amino acid sequences were extracted and saved. Example:
+
+```bash
+
+awk '/NODE_20612_length_2133_cov_1535.833013_g8101_i1/ {print; getline; while ($0 !~ /^>/) /
+{print; getline}}' final.clust_transcripts_longest_iso.fasta
+
+awk '/NODE_20612_length_2133_cov_1535.833013_g8101_i1/ {print; getline; while ($0 !~ /^>/) /
+{print; getline}}' final.clust_proteins_longest_iso.fasta
+
+```
+
+For visualization in IGV viewer and search for alternative splicing SR and LR were mapped to transcriptome assembly:
+
+```bash
+
+minimap2 -ax sr  final.clust_transcripts_longest_iso.fasta mRNA_Cornus/Illumina/RNA_S11398Nr4.1.fastq.gz mRNA_Cornus/Illumina/RNA_S11398Nr4.2.fastq.gz -t 10 > berries.sam 
+minimap2 -ax sr  final.clust_transcripts_longest_iso.fasta mRNA_Cornus/Illumina/RNA_S11398Nr6.1.fastq.gz mRNA_Cornus/Illumina/RNA_S11398Nr6.2.fastq.gz -t 10 > leaves.sam 
+ minimap2 -ax sr final.clust_transcripts_longest_iso.fasta mRNA_Cornus/Illumina/RNA_S11398Nr7.1.fastq.gz mRNA_Cornus/Illumina/RNA_S11398Nr7.2.fastq.gz -t 10 > flowers.sam 
+
+
+minimap2 -ax splice -uf -k14 final.clust_transcripts_longest_iso.fasta mRNA_Cornus/Nanopore/BC01.fastq.gz -t 10  > berries_LR.sam
+minimap2 -ax splice -uf -k14 final.clust_transcripts_longest_iso.fasta mRNA_Cornus/Nanopore/BC08.fastq.gz -t 10  > flowers_LR.sam
+minimap2 -ax splice -uf -k14 final.clust_transcripts_longest_iso.fasta mRNA_Cornus/Nanopore/BC05.fastq.gz -t 10  > leaves_LR.sam
+
+```
+The resulted .sam files were converted to .bam, sorted and indexed using Samtools:
+
+```bash
+
+samtools view -bS -F 0x4 berries.sam > berries.bam
+samtools view -bS -F 0x4 flowers.sam > flowers.bam
+samtools view -bS -F 0x4 leaves.sam > leaves.bam
+
+samtools sort berries.bam > berries.sorted.bam
+samtools sort leaves.bam > leaves.sorted.bam 
+samtools sort flowers.bam > flowers.sorted.bam
+
+samtools index -M  *sorted.bam
+ 
+```
+After that, every DQD/SDH variant were manually inspected. Due to the inconsistent nomenclature of DQD/SDH genes among plant species, 
+identifiers (DQD/SDH1–5)  were assigned according to their occurrence in the annotation. One alternatively spliced isoform generated 
+through intron retention was identified. Examples of IGV screens are saved in IGV/ folder.
+
+```{r pressure, echo=FALSE, fig.cap="SR and LR alignment and coverage for CserDQD/SDH1 in berry sample", out.width = '100%'}
+knitr::include_graphics("IGV/CserDQD/SDH1.png")
+
+```
+
+Therefore, the sequence from 1586 to 2031 bp was removed and translated. 
 
 
 
@@ -353,5 +402,9 @@ The code chunks for data visualization are saved in Analysis.Rmd
 To count, we use the code  #5 Count annotions in final gff3 file
 6. Plot the result - chunk #6 Plot the counts of annotions in final gff3 file
 
+
+**Data Archiving Statement**
+Sequence data that support the findings of this study have been deposited in of NCBI at https://www.ncbi.nlm.nih.gov/. The associated BioProject is PRJNA1466783 
+and SRA accession numbers are SRR38625913, SRR38625914, SRR38625915, SRR38625916, SRR38625917, SRR38625918
 
 

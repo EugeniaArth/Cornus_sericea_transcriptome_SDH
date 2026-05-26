@@ -1466,7 +1466,7 @@ p2 <- p +
 
 print(p2)
 
-ggsave("plots/Figure 4.png", p2,
+ggsave("plots/Key_AA_per_clade.png", p2,
        width = 12, height = 12, dpi = 300, bg = "white")
 
 
