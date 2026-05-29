@@ -11,6 +11,9 @@ e-mail: gatiatulinaer@gmail.com
 Transcriptome assembly and functional annotation of *Cornus sericea*, with a focus on identifying and characterizing 
 3-dehydroquinate dehydratase/shikimate dehydrogenases.
 
+**Scheme of present study**
+
+![alt text](https://github.com/EugeniaArth/Cornus_sericea_transcriptome_SDH/blob/main/plots/Cornus_sericea_pipeline_full.png)
 
 # Sample preparation
 Samples of young and mature leaves, immature fruits, buds and flowers of *Cornus sericea* L. were collected in July 2024 in Moscow, Russia
