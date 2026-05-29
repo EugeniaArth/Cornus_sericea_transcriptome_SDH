@@ -432,8 +432,6 @@ On the next step, DQD/SDH proteins properties were analyzed.
 
 # Analysis of DQD/SDH proteins properties
 
-
-
 Stability of C. sericea DQD/SDHs predicted from amino acid sequence using ProtParam (https://web.expasy.org/protparam/) 
 
 Code align DQD_SDH_possible_pr.fasta and DQD_SDH_possible_nt.fasta with Clustal Omega
@@ -469,6 +467,9 @@ python3 bin/align_and_tree_one.py \
 
 ```
 
+Finally, resulting  phylogenetic tree was constructed for six C. sericea DQD/SDHs assessed in this study and the 44 sequences available in public 
+databases was visualized using iTOL (https://itol.embl.de)
+
 # Prediction of chloroplast transit peptide presence 
 
 
@@ -488,8 +489,7 @@ the comparison of key amino acids in the 3-DHD and SDH domains depends on clades
 AtSDH sequence, sequence reordering, annotation of data based on cpTP presence, QDH and GA-forming activity and visualization based on phylogenetic tree data.
 
 
-
-**Data Archiving Statement**
+# Data Archiving Statement
 Sequence data that support the findings of this study have been deposited in of NCBI at https://www.ncbi.nlm.nih.gov/. The associated BioProject is PRJNA1466783 
 and SRA accession numbers are SRR38625913, SRR38625914, SRR38625915, SRR38625916, SRR38625917, SRR38625918
 
