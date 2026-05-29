@@ -225,7 +225,7 @@ Business logic:
   - KEGG KO/Pathway/Module/Reaction from Files/KEGG_annotation_per_transcript.csv
 
 
-PHASE F: Annotation summaries and plots (Analysis.Rmd)
+PHASE F: Annotation summaries and plots 
 ------------------------------------------------------
 Inputs: Files/busco.csv, GO/KEGG tables, Files/annotated_final.gff3
 
@@ -237,7 +237,7 @@ Outputs (plots/):
   - Annotation_statistics_gff3.png (#5-#6, parses GFF3 via reticulate/pandas)
 
 
-PHASE G: DQD/SDH identification and curation (README + Files/DQD_SDH/)
+PHASE G: DQD/SDH identification and curation 
 ----------------------------------------------------------------------
 Inputs:
   - Files/annotated_final.gff3 (grep for "bifunctional 3-dehydroquinate
@@ -246,10 +246,9 @@ Inputs:
   - Files/final.clust_proteins_longest_iso.fasta
 
 Steps:
-  G1. GFF3 grep/awk -> five mRNA loci with UTR/CDS coordinates (README table).
+  G1. GFF3 grep/awk -> five mRNA loci with UTR/CDS coordinates.
   G2. Sequence extraction (awk on FASTA) -> DQD/SDH candidate sets.
-  G3. Per-sample minimap2 alignments for IGV splicing inspection (README; BAMs
-      not in repo). Screenshots: IGV/CserDQD_SDH1.png ... CserDQD_SDH5.png,
+  G3. Per-sample minimap2 alignments for IGV splicing inspection. Screenshots: IGV/CserDQD_SDH1.png ... CserDQD_SDH5.png,
       CserDQD_SDH1_all.png.
   G4. Manual naming: DQD/SDH1-5; intron-retention isoform -> DQD/SDH1.2.
 
@@ -262,9 +261,8 @@ G5. Splice-interval removal for DQD/SDH1.1 (intron retention correction):
     -i Files/DQD_SDH/DQD_SDH_possible_nt.fasta \
     -o Files/DQD_SDH/DQD_SDH_possible_nt.spliced_1586-2031.fasta \
     --start 1586 --end 2031 --only-first
-  (README path; repo also contains Files/DQD_SDH/DQD_SDH1.spliced_1586-2031.fasta)
 
-G6. TransDecoder ORF prediction (external, README):
+G6. TransDecoder ORF prediction:
   TransDecoder.LongOrfs / TransDecoder.Predict on spliced transcript.
 
 G7. Manual CDS curation + UTR/protein export:
@@ -273,10 +271,10 @@ G7. Manual CDS curation + UTR/protein export:
     -o Files/DQD_SDH/TransDecoder_eval --trim-cds --only-first
   Outputs: CserDQD_SDH1.1.{five_prime_UTR,CDS,three_prime_UTR,protein,qc}.fasta/txt
 
-G8. Protein property check: ProtParam (web, README).
+G8. Protein property check: ProtParam.
 
 
-PHASE H: Within-species DQD/SDH diversity (bin/ + Analysis.Rmd #7-#8)
+PHASE H: Within-species DQD/SDH diversity 
 ---------------------------------------------------------------------
 Inputs: Files/DQD_SDH/DQD_SDH_possible_{nt,pr}.fasta
 
@@ -314,7 +312,7 @@ Command:
 
 Outputs:
   - Files/Alignment/ClustalO.aln.fa (+ IQ-TREE side files: .contree, .treefile, etc.)
-  - Visualization: iTOL (external web, README)
+  - Visualization: iTOL 
 
 Analysis.Rmd #9A-#9B (cpTP N-terminal composition):
   - Uses Files/Alignment/For_alignment.fasta + metadata_fig_4.xlsx
@@ -328,18 +326,12 @@ Analysis.Rmd #10 (key residues by clade):
     Files/Alignment/ClustalO.aln.reordered.fa,
     Files/Alignment/combined_subset_alignment.fasta
   - Figure -> plots/Key_AA_per_clade_new.png
-  - Note: chunk #10 references variable outgroup_tips which is not defined
-    elsewhere in the repository (unclear from repository).
 
 
-PHASE J: Chloroplast transit peptide prediction (README only)
+PHASE J: Chloroplast transit peptide prediction 
 -------------------------------------------------------------
 Inputs: DQD/SDH protein sequences.
-Tools (external): WoLF PSORT, TargetP-2.0, DeepLoc 2.0, PredSL, ChloroP.
-Repo-related inputs for downstream plots:
-  - Files/Transit_peptide.xlsx (present; usage in Analysis.Rmd unclear from
-    repository beyond metadata_fig_4.xlsx for figure 4/5)
-  - Files/Alignment/metadata_fig_4.xlsx used for cpTP column in figure 5.
+Tools (external): WoLF PSORT, TargetP-2.0, DeepLoc 2.0, PredSL, ChloroP
 
 
 ================================================================================
@@ -392,12 +384,10 @@ bin/ scripts
   align_and_tree_one.py
       Orchestrates clustalo + iqtree for multi-species alignment
 
-  seq_similarity.py
-      Legacy/experimental pairwise identity; not wired into main pipeline
 
 Files/ key subfolders
 ---------------------
-  Files/final.clust_*               trans2express assembly/annotation core
+  Files/final.clust_*             trans2express assembly/annotation core
   Files/annotated_final.gff3      Merged functional annotation GFF3
   Files/*_best_hits*.txt          BLAST/DIAMOND annotation tables
   Files/GO_*                      GO term tables for plotting and GFF3 merge
@@ -606,7 +596,7 @@ Use the numbered blocks below as flowchart nodes. Arrows show primary data flow.
     +---> [11d] eggNOG-mapper --> emapper.annotations
     |              |
     |              +---> [12a] GO_analysis_from_eggnogg_data.py --> GO tables
-    |              +---> [12b] KEGG_anno.py / KAAS web --> KEGG tables
+    |              +---> [12b] KAAS web --> KEGG tables
     v
 [13] gff3_annotation.py (priority RefSeq>UniProt>NR + GO + KEGG)
     |
@@ -616,7 +606,7 @@ Use the numbered blocks below as flowchart nodes. Arrows show primary data flow.
     +---> [15] Analysis.Rmd chunks #1-#6 --> annotation summary plots (plots/)
     |
     v
-[16] Grep DQD/SDH from GFF3; extract FASTA sequences
+[16] Grep DQD/SDHs from GFF3; extract FASTA sequences
     |
     v
 [17] IGV read mapping review (manual) --> IGV/*.png
@@ -625,11 +615,11 @@ Use the numbered blocks below as flowchart nodes. Arrows show primary data flow.
 [18] splice_interval_to_fasta.py (remove intron retention segment)
     |
     v
-[19] TransDecoder + evaluate_utrs_cds_transdecoder.py --> DQD/SDH1.1 model
+[19] TransDecoder + evaluate_utrs_cds_transdecoder.py --> DQD/SDH1.1 splicing variant
     |
     v
-[20] align_SDH_distance_iqtree.py --> alignments, distances, trees
-    |                                      (Files/DQD_SDH/align_tree/)
+[20] align_SDH_distance_iqtree.py --> DQD/SDHs alignments, distances, trees
+    |                                      
     v
 [21] Analysis.Rmd #7-#8 --> identity heatmaps / Figure 2 (plots/)
     |
@@ -639,10 +629,10 @@ Use the numbered blocks below as flowchart nodes. Arrows show primary data flow.
     +---> [23] iTOL tree visualization (external)
     |
     v
-[24] Analysis.Rmd #9 --> cpTP sequence logos (plots/)
+[24] Analysis.Rmd #9 --> cpTP sequence logos
     |
     v
-[25] Analysis.Rmd #10 --> key amino acid figure by clade (plots/)
+[25] Analysis.Rmd #10 --> key amino acid figure by clade
     |
     v
 [26] Final outputs: annotated transcriptome, DQD/SDH sequences/models,

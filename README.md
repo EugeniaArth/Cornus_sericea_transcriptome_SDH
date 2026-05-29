@@ -26,6 +26,7 @@ Samples were paired-end (PE) sequenced using NovaSeq 6000, 2 x 101 bp (Illumina 
 
 **Long read (LR) sequencing**
 
+
 For ONT libraries RNA was converted to cDNA using Mint cDNA synthesis kit (Evrogen, Moscow, Russia) with 20-25 cycles of amplification with the following modification: 
 1) cDNA synthesis is primed with oligonucleotides that contain not only dT part and adapter part but also custom barcode, specific for each sample; 
 2) optimal number of cycles for amplification was selected based on the results of qPCR with primers annealing at 3’ and 5’ ends. 
@@ -494,3 +495,63 @@ Sequence data that support the findings of this study have been deposited in of 
 and SRA accession numbers are SRR38625913, SRR38625914, SRR38625915, SRR38625916, SRR38625917, SRR38625918
 
 
+# External dependancies
+
+**Command-line tools**
+
+ - trans2express (https://github.com/albidgy/trans2express)
+ - fastqc (https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+ - NanoPlot (https://github.com/wdecoster/nanoPlot)
+ - cutadapt (https://github.com/marcelm/cutadapt)
+ - fastp (https://github.com/OpenGene/fastp)
+ - rnaQUAST (https://github.com/ablab/rnaquast)
+ - BUSCO (https://gitlab.com/ezlab/busco)
+ - minimap2 (https://github.com/lh3/minimap2)
+ - samtools (https://github.com/samtools/samtools)
+ - seqkit (https://github.com/shenwei356/seqkit)
+ - BLAST+ executables (https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html)
+ - diamond (https://bbuchfink.github.io/diamond/)
+ - eggNOG-mapper (https://github.com/eggnogdb/eggnog-mapper)
+ - TransDecoder (https://github.com/TransDecoder/TransDecoder)
+ - clustalo (http://www.clustal.org/omega/)
+ - iqtree2 or iqtree (https://github.com/iqtree/iqtree2)
+ - python3 (https://www.python.org/)
+ - R (https://www.r-project.org/)
+ - wget (https://www.gnu.org/software/wget/)
+
+**Python packages**
+
+ - pandas (https://pypi.org/project/pandas/) 
+ - goatools (https://github.com/treedb/goatools) 
+
+**R packages**
+
+  See Analysis.Rmd library() calls; ggmsa may require separate install.
+
+**External databases and downloads**
+
+ - UniProt plants reviewed FASTA 
+ - RefSeq plant proteins (NCBI FTP)
+ - NCBI nr viridiplantae subset
+ - BUSCO lineage datasets (eukaryota, eudicots, viridiplantae odb10)
+ - eggNOG-mapper databases 
+ - *Cornus florida* reference genome for rnaQUAST (GCF_030987335.1)
+ - Public DQD/SDH protein sequences 
+
+**Web services / APIs**
+
+ - KEGG KAAS (https://www.genome.jp/kaas-bin/kaas_main)
+ - ProtParam (https://web.expasy.org/protparam/)
+ - NCBI ORFfinder (https://www.ncbi.nlm.nih.gov/orffinder/)
+ - iTOL (https://itol.embl.de) 
+ - Subcellular localization tools:
+  - TargetP (https://services.healthtech.dtu.dk/services/TargetP-2.0/)
+  - WoLF PSORT (https://wolfpsort.hgc.jp)
+  - DeepLoc 2.1 (https://services.healthtech.dtu.dk/services/DeepLoc-2.1/)
+  - PredSl (http://aias.biol.uoa.gr/PredSL/)
+  - ChloroP (https://services.healthtech.dtu.dk/services/ChloroP-1.1/)
+
+**Cloud / queues / databases**
+
+  None configured in repository.
+  Sequence archival: NCBI SRA (accessions in README).
