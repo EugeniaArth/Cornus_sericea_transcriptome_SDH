@@ -1,0 +1,22 @@
+SHORT SUMMARY REPORT 
+
+METRICS/TRANSCRIPTS                                    final.clust_transcripts_longest_iso  
+
+ == BASIC TRANSCRIPTS METRICS == 
+Transcripts                                            29124                                
+Transcripts > 500 bp                                   26009                                
+Transcripts > 1000 bp                                  19968
+
+ == ALIGNMENT METRICS == 
+Aligned                                                26116                                
+Uniquely aligned                                       24820                                
+Multiply aligned                                       96                                   
+Unaligned                                              3008
+
+ == ALIGNMENT METRICS FOR NON-MISASSEMBLED TRANSCRIPTS == 
+Avg. aligned fraction                                  0.765                                
+Avg. alignment length                                  1362.312                             
+Avg. mismatches per transcript                         28.651
+
+ == ALIGNMENT METRICS FOR MISASSEMBLED (CHIMERIC) TRANSCRIPTS == 
+Misassemblies                                          1200

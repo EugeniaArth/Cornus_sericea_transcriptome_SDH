@@ -65,15 +65,16 @@ print("UniProt entries:", len(uniprot_dict))
 print("nr entries:", len(nr_dict))
 
 
-# Load GO annotations (only from filtered GO file)
+# Load GO annotations from GO_terms_highest_level_per_transcript.csv (not GO_annotation.txt)
 
-go_annots = pd.read_csv(
-    'Files/GO_annotation.txt',
-    sep='\t',
-    header=None,
-    names=['ID', 'GO_terms']
+go_annots = pd.read_csv('Files/GO_terms_highest_level_per_transcript.csv')
+go_annots.columns = go_annots.columns.str.strip()
+go_dict = (
+    go_annots.groupby('Transcript_ID')['GO_term']
+    .apply(lambda terms: ','.join(sorted(set(terms.dropna().astype(str)))))
+    .to_dict()
 )
-go_dict = go_annots.set_index('ID')['GO_terms'].to_dict()
+print("GO entries:", len(go_dict))
 
 # Load KEGG annotations per transcript
 
@@ -191,7 +192,7 @@ with open('Files/final.clust_annotation_longest_iso.gff3', 'r') as infile, \
             attr_fields['NR_best_hit'] = nr_dict[lookup_id]['Hit']
 
 
-        # GO annotation (only from GO_annotation.txt)
+        # GO annotation (from GO_terms_highest_level_per_transcript.csv)
 
         go_term = go_dict.get(lookup_id, '')
         if pd.notna(go_term) and str(go_term).strip():

@@ -247,6 +247,7 @@ Protein sequences were send with parameters:
 Sp: ath, aly, gmx, gsj, fve, pop, jre, vvi, sly, nta, osa, zma, dct, rcn, pper, egr, brp, cit, tcc, qsu, oeu, bvg, dosa, ppp, peq, aof, atr, 
 cre, mng, apro, olu, cme, gsl, ccp, psom, ini, peu, rcu
 
+Output files were saved in Files/KEGG folder
 KEGG pathways were visualized using chunk #3 Analyse KEGG pathway and create a figure available at Analysis.Rmd file
 
 
@@ -265,8 +266,7 @@ python /eggnog-mapper-2.1.12/emapper.py -i final.clust_proteins_longest_iso.fast
 
 The resulted file is called  final.clust_proteins_longest_iso.emapper.annotations - and it will contain multiple lines  with COG, KOG and GO 
 annotations. Because GO terms are always redundant, on the next step we parse GO terms and extract them using python script GO_analysis_from_eggnogg_data.py
-For GO terms, filtering for the highest GO level for each transcript was performed, to avoid exessive and unnesessary data.
-
+For GO terms, filtering for the highest GO level for each transcript was performed, to avoid excessive and unnecessary data.
 Data from GO annotation may be visualized using #2 Analyse GO annotation and create a figure chunk available at Analysis.Rmd file
 
 **Addition of data to gff3**
@@ -280,7 +280,7 @@ python gff3_annotation.py
 
 ```
 
-The priority of annotation was folowing: RefSeq > UniProt > NR with addition available GO terms.
+The priority of annotation was folowing: RefSeq > UniProt > NR with addition available GO terms and KEGG KO/Pathway/Module/Reaction.
 
 After annotation, the basic analysis and plots were created. The code used are present at Analysis.Rmd file:
 Summary of the annotation tools - chunk #4 Sum of annotation results in general, from resulted best_hits, etc files
