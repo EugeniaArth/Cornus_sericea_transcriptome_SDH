@@ -340,11 +340,9 @@ Then, the mRNA and amino acid sequences were extracted and saved. Example:
 
 ```bash
 
-awk '/NODE_20612_length_2133_cov_1535.833013_g8101_i1/ {print; getline; while ($0 !~ /^>/) /
-{print; getline}}' final.clust_transcripts_longest_iso.fasta
+awk -v '/NODE_20612_length_2133_cov_1535.833013_g8101_i1/ -v RS='>' '$1 == seq {print RS $0}' final.clust_transcripts_longest_iso.fasta 
 
-awk '/NODE_20612_length_2133_cov_1535.833013_g8101_i1/ {print; getline; while ($0 !~ /^>/) /
-{print; getline}}' final.clust_proteins_longest_iso.fasta
+awk -v '/NODE_20612_length_2133_cov_1535.833013_g8101_i1/ -v RS='>' '$1 == seq {print RS $0}' final.clust_proteins_longest_iso.fasta 
 
 ```
 
@@ -379,14 +377,72 @@ samtools index -M  *sorted.bam
 ```
 After that, every DQD/SDH variant were manually inspected. Due to the inconsistent nomenclature of DQD/SDH genes among plant species, 
 identifiers (DQD/SDH1–5)  were assigned according to their occurrence in the annotation. One alternatively spliced isoform generated 
-through intron retention was identified. Examples of IGV screens are saved in IGV/ folder.
+through intron retention was identified. Examples of IGV screens are saved in IGV folder.
 
-```{r pressure, echo=FALSE, fig.cap="SR and LR alignment and coverage for CserDQD/SDH1 in berry sample", out.width = '100%'}
-knitr::include_graphics("IGV/CserDQD/SDH1.png")
+
+Therefore, the sequence from 1586 to 2031 bp was removed and translated. Run script for that (for only first sequence in file)
+And save result
+
+```bash
+
+python3 bin/splice_interval_to_fasta.py \
+  -i Files/DQD_SDH/DQD_SDH_possible_nt.fasta \
+  -o Files/DQD_SDH/DQD_SDH_possible_nt.spliced_1586-2031.fasta \
+  --start 1586 --end 2031 --only-first
 
 ```
 
-Therefore, the sequence from 1586 to 2031 bp was removed and translated. 
+Next TransDecoder was used to check the CDS of the new protein sequences:
+
+```bash
+
+TransDecoder.LongOrfs -t Files/DQD_SDH/DQD_SDH_possible_nt.spliced_1586-2031.fasta
+
+TransDecoder.Predict -t  Files/DQD_SDH/DQD_SDH_possible_nt.spliced_1586-2031.fasta --no_refine_starts
+
+```
+
+The TransDecoder ORF was classified as 5′ partial because start-site refinement failed due to insufficient training data. Therefore, the 3′ CDS boundary predicted by TransDecoder 
+was retained, while the 5′ CDS boundary was manually curated based on the presence of an upstream ATG, correct reading frame, absence of premature stop codons, and similarity 
+to homologous DQD/SDH proteins.
+The script was used to extract 5’UTR/CDS/3’UTR from the spliced transcript, translate CDS to protein, and write all outputs plus QC checks to files. 
+
+```bash
+python bin/evaluate_utrs_cds_transdecoder.py \
+  -i Files/DQD_SDH/DQD_SDH_possible_nt.spliced_1586-2031.fasta \
+  --cds-start 131 --cds-end 1651 \
+  -o Files/DQD_SDH/TransDecoder_eval \
+  --trim-cds --only-first
+  
+```
+
+On the next step, DQD/SDH proteins properties were analyzed.
+
+# Analysis of DQD/SDH proteins properties
+
+
+Code align DQD_SDH_possible_pr.fasta and DQD_SDH_possible_nt.fasta with Clustal Omega
+Compute gap-ignored p-distance matrices from the alignments (ignores columns with - in either seq)
+Build trees with IQ-TREE (uses iqtree2 if available, else iqtree)
+
+```bash
+python3 bin/align_distance_iqtree.py \
+  --protein-fasta Files/DQD_SDH/DQD_SDH_possible_pr.fasta \
+  --nt-fasta Files/DQD_SDH/DQD_SDH_possible_nt.fasta \
+  --outdir Files/DQD_SDH/align_tree \
+  --threads 8
+```
+
+For the multiple DQD/SDHs of dicot species protein secuence alignment was performed with Clustal Omega and tree was build using iqtree
+
+```bash
+python3 bin/align_and_tree_one.py \
+  -i Files/Alignment/For_alignment.fasta \
+  -o Files/Alignment/ClustalO.aln.fa \
+  --seq-type protein \
+  --threads 8
+
+```
 
 
 

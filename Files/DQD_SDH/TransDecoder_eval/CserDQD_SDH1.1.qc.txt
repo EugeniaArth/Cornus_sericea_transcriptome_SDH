@@ -1,0 +1,16 @@
+record=CserDQD/SDH1.1 splice:1586-2031
+transcript_len=1885
+cds_start_1=131
+cds_end_1=1627
+utr5_len=130
+cds_len_raw=1497
+cds_len_trimmed=1497
+cds_trimmed_bp=0
+utr3_len=258
+cds_mod3_raw=0
+cds_mod3_trimmed=0
+cds_start_codon=ATG
+cds_stop_codon=TGA
+protein_len=499
+internal_stop_count=0
+ends_with_stop=True

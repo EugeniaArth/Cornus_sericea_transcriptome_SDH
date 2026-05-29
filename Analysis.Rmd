@@ -263,18 +263,18 @@ count <- c(26681, 19496, 26898, 12326, 12766, 2077)
 # Create data frame
 anno_Cser <- data.frame(Category = category, Count = count)
 
-
-ggbarplot(anno_Cser , x = "Category", y = "Count", 
-           ylab = "Number of transcripts",  xlab = "", title = "") +
+pA <- ggbarplot(anno_Cser , x = "Category", y = "Count", 
+                 ylab = "Number of transcripts",  xlab = "", title = "") +
   geom_text(aes(label=Count), color="black",
             position=position_dodge(width=0.9), vjust=-0.25, hjust=0.5, size=4.5) +
   theme(axis.text.y = element_text(size = 16),
         axis.text.x = element_text(size = 16),
         axis.title = element_text(size = 16),
         strip.text = element_text(size = 16)) +
-  theme( legend.position = "none")
+  theme(legend.position = "none")
 
-ggsave("plots/Annotation_statistics.png", width = 10, height = 6, dpi = 300)
+ggsave("plots/Annotation_statistics.png", pC, width = 10, height = 6, dpi = 300)
+
 ```
 
 
@@ -359,7 +359,7 @@ tmp_res <- py$gff3_annotation_res
 gff3_annotation_res <- as.data.frame(py_to_r(tmp_res))
 new_line <- c("Unannotated", 2077)
 gff3_annotation_res <- rbind(gff3_annotation_res, new_line)
-
+  
 gff3_annotation_res$Category <-  sub("_best_hit", "", gff3_annotation_res$Category)
 gff3_annotation_res$Category <-  sub("KEGG_KO", "KEGG", gff3_annotation_res$Category)
 gff3_annotation_res$Category <-  sub("NR", "NCBI NR", gff3_annotation_res$Category)
@@ -371,201 +371,161 @@ gff3_annotation_res$Category <-  sub("Ontology_term", "GO", gff3_annotation_res$
 gff3_annotation_res$Count <- as.numeric(gff3_annotation_res$Count)
 gff3_annotation_res$Category <- as.character(gff3_annotation_res$Category)
 
-ggbarplot(gff3_annotation_res[ c(2:6, 8),], x = "Category", y = "Count", 
-           ylab = "Number of transcripts",  xlab = "", title = "") +
+pB <- ggbarplot(gff3_annotation_res[ c(2:6, 8),], x = "Category", y = "Count", 
+                 ylab = "Number of transcripts",  xlab = "", title = "") +
   geom_text(aes(label=Count), color="black",
             position=position_dodge(width=0.9), vjust=-0.25, hjust=0.5, size=4.5) +
   theme(axis.text.y = element_text(size = 16),
         axis.text.x = element_text(size = 16),
         axis.title = element_text(size = 16),
         strip.text = element_text(size = 16)) +
-  theme( legend.position = "none")
+  theme(legend.position = "none")
 
-ggsave("plots/Annotation_statistics_gff3.png", width = 10, height = 6, dpi = 300)
+ggsave("plots/Annotation_statistics_gff3.png", pD, width = 10, height = 6, dpi = 300)
+
 ```
 
 
 **DQD/SDH analysis**
 
-#6 Sequense identity plot (from matrix after MAFFT alignment)
+
+#7 Plots for Figure 2C, D - Sequense identity plots and trees as a dendrogram beside the heatmap 
 
 ```{r}
-
-labels <- c("CserDQD/SDH1.1", "CserDQD/SDH1.2", "CserDQD/SDH2",
-            "CserDQD/SDH3", "CserDQD/SDH4", "CserDQD/SDH5")
-
-# Data matrix of identity for nt sequenses (including gaps, Clustal Omega alignment)
-data_nt <- matrix(c(
-  100, 85, 33, 33, 35, 52,
-  85, 100, 37, 33, 37, 43,
-  33, 37, 100, 69, 71, 59,
-  33, 33, 69, 100, 72, 60,
-  35, 37, 71, 72, 100, 62,
-  52, 43, 59, 60, 62, 100
-), nrow = 6, byrow = TRUE)
-
-rownames(data_nt) <- labels
-colnames(data_nt) <- labels
-
-# Data matrix of identity for prot sequenses (including gaps, Clustal Omega alignment)
-data_pr <- matrix(c(
-  100, 97, 44, 44, 38, 57,
-  97, 100, 45, 45, 39, 58,
-  44, 45, 100, 59, 70, 47,
-  44, 45, 59, 100, 63, 47,
-  38, 39, 70, 63, 100, 43,
-  57, 58, 47, 47, 43, 100
-), nrow = 6, byrow = TRUE)
-
-rownames(data_pr) <- labels
-colnames(data_pr) <- labels
-
-
-# Melt data
-#data_melt <- melt(data_nt) #or 
-data_melt <- melt(data_pr)
-
-
-# Save high-resolution figure
-ggsave("sequence_identity_heatmap.png", p, width = 6, height = 5, dpi = 600)
-
-# more light variant
-library(scales)
-# Plot
-p <- ggplot(data_melt, aes(Var1, Var2, fill = value)) +
-  geom_tile(color = "grey85", linewidth = 0.4) +
-  geom_text(aes(label = value), size = 3.2, fontface = "bold") +
-
-  # LIGHT custom gradient
-  scale_fill_gradientn(
-  colours = c("#f7fbff", "#c6dbef", "#6b92d6", "#fddbc7", "#f4a582"),
-  values = scales::rescale(c(10, 40, 60, 80, 100)),
-  limits = c(0, 100),
-  name = "Identity (%)"
-) +
-
-  coord_fixed() +
-
-  theme_classic(base_size = 12) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-    axis.text.y = element_text(size = 10),
-    axis.title = element_blank(),
-    legend.title = element_text(size = 11),
-    legend.text = element_text(size = 9),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.6)
-  )
-
-print(p)
-
-# Save high-resolution figure
-ggsave("plots/sequence_identity_heatmap.png", p, width = 6, height = 5, dpi = 600)
-
-```
-
-#7 Plots for Figure 2C, D - NWK tree as a dendrogram beside the heatmap 
-
-```{r}
-
 library(ape)
 library(gplots)
+library(ggplot2)
+library(ggplotify)
+library(patchwork)
+library(ggpubr)
 
-# 1. Sequence identity matrix
-# for nt - for AA change matrix and mwk tree
-mat <- matrix(c(
- 100, 97, 44, 44, 38, 57,
-  97, 100, 45, 45, 39, 58,
-  44, 45, 100, 59, 70, 47,
-  44, 45, 59, 100, 63, 47,
-  38, 39, 70, 63, 100, 43,
-  57, 58, 47, 47, 43, 100
-), nrow = 6, byrow = TRUE)
-
-labels <- c(
-  "CserDQD/SDH1.1",
-  "CserDQD/SDH1.2",
-  "CserDQD/SDH2",
-  "CserDQD/SDH3",
-  "CserDQD/SDH4",
-  "CserDQD/SDH5"
-)
-
-rownames(mat) <- labels
-colnames(mat) <- labels
-
-
-nwk <- "(CserDQD/SDH1.1:0.00772569,CserDQD/SDH1.2:0.0211617,((CserDQD/SDH2:0.166335,(CserDQD/SDH3:0.248687,CserDQD/SDH4:0.208442):0.0965437):0.519644,CserDQD/SDH5:0.346317):0.429086);"
-
-tree <- read.tree(text = nwk)
-
-#plot(tree)
-
-# Root the tree using one tip as outgroup
-tree_rooted <- root(
-  tree,
-  outgroup = c("CserDQD/SDH1.1", "CserDQD/SDH1.2"),
-  resolve.root = TRUE
-)
-
-# Optional check
-print(is.rooted(tree_rooted))  # should be TRUE
-#plot(tree_rooted) #Same as unrooted tree
-
-# 3. Make branch lengths suitable for dendrogram conversion
-
-tree_grafen <- compute.brlen(tree_rooted, method = "Grafen")
-
-# Convert phylo -> hclust -> dendrogram
-hc <- as.hclust(tree_grafen)
-dend <- as.dendrogram(hc)
-
-# Reorder matrix to match tree
-tip_order <- hc$labels[hc$order]
-mat_ord <- mat[tip_order, tip_order]
-
-
-# 3. Mid-contrast publication palette
-
-my_cols <- colorRampPalette(c(
-  "#f7fbff", "#c6dbef", "#6b92d6", "#fddbc7", "#f4a582"
-))(100)
-
-
-# 4. Save as PNG
-
-png("pr_sequence_identity_tree_heatmap.png", width = 2600, height = 1800, res = 300)
-
-
-heatmap.2(
-  mat_ord,
-  Rowv = NA,
-  Colv = dend,
-  dendrogram = "column",
-  trace = "none",
-  key = F,
-  key.title = "Identity",
-  key.xlab = "%",
-  density.info = "none",
-  col = my_cols,
-  breaks = seq(0, 100, length.out = 101),
+plot_identity_heatmap <- function(matrix_file, tree_file, out_png, outgroup = NULL) {
   
-  cellnote = mat_ord,   # add % sign
-  notecol = "black",
-  notecex = 1.0,
-  font = 2,                          # <-- THIS makes them bold
+  mat_dist <- read.table(
+    matrix_file,
+    header = TRUE,
+    row.names = 1,
+    sep = "\t",
+    check.names = FALSE,
+    quote = "",
+    comment.char = ""
+  )
   
-  margins = c(12, 16),
-  sepcolor = "grey85",
-  colsep = 1:ncol(mat_ord),
-  rowsep = 1:nrow(mat_ord),
-  cexRow = 1.1,
-  cexCol = 1.0,
-  srtCol = 45,
-  labRow = rownames(mat_ord),
-  labCol = colnames(mat_ord)
+  mat_dist <- as.matrix(mat_dist)
+  mode(mat_dist) <- "numeric"
+  
+  if (!isTRUE(all.equal(mat_dist, t(mat_dist), tolerance = 1e-6))) {
+    warning("Distance matrix is not symmetric. Averaging upper/lower triangles.")
+    mat_dist <- (mat_dist + t(mat_dist)) / 2
+  }
+  
+  diag(mat_dist) <- 0
+  
+  # distance -> identity %
+  mat_id <- (1 - mat_dist) * 100
+  diag(mat_id) <- 100
+  
+  tree <- read.tree(tree_file)
+  
+  if (!is.null(outgroup)) {
+    tree <- root(tree, outgroup = outgroup, resolve.root = TRUE)
+  }
+  
+  tree_grafen <- compute.brlen(tree, method = "Grafen")
+  hc <- as.hclust(tree_grafen)
+  dend <- as.dendrogram(hc)
+  
+  tip_order <- hc$labels[hc$order]
+  mat_ord <- mat_id[tip_order, tip_order]
+  
+  note_mat <- matrix(
+    paste0(round(mat_ord, 1), "%"),
+    nrow = nrow(mat_ord),
+    ncol = ncol(mat_ord),
+    dimnames = dimnames(mat_ord)
+  )
+  
+  my_cols <- colorRampPalette(c(
+    "#f7fbff", "#c6dbef", "#6b92d6", "#fddbc7", "#f4a582"
+  ))(100)
+  
+  heatmap_fun <- function() {
+    heatmap.2(
+      mat_ord,
+      Rowv = NA,
+      Colv = dend,
+      dendrogram = "column",
+      trace = "none",
+      key = FALSE,
+      density.info = "none",
+      col = my_cols,
+      breaks = seq(0, 100, length.out = 101),
+      cellnote = note_mat,
+      notecol = "black",
+      notecex = 1.0,
+      font = 2,
+      margins = c(8, 10),
+      lhei = c(1.3, 4),
+      lwid = c(0.8, 4),
+      sepcolor = "white",
+      colsep = 1:ncol(mat_ord),
+      rowsep = 1:nrow(mat_ord),
+      cexRow = 1.1,
+      cexCol = 1.0,
+      srtCol = 45,
+      labRow = rownames(mat_ord),
+      labCol = colnames(mat_ord)
+    )
+  }
+  
+  # Save individual heatmap
+  png(out_png, width = 2600, height = 1800, res = 300)
+  heatmap_fun()
+  dev.off()
+  
+  # Return plot object for combined figure
+  p <- as.ggplot(heatmap_fun)
+  return(p)
+}
+
+# Protein identity heatmap
+pC <- plot_identity_heatmap(
+  matrix_file = "Files/DQD_SDH/align_tree/DQD_SDH_possible_pr.dist_nogaps.tsv",
+  tree_file   = "Files/DQD_SDH/align_tree/DQD_SDH_possible_pr.iqtree.contree",
+  out_png     = "plots/DQD_SDH_possible_pr_identity_heatmap.png",
+  outgroup    = c("CserDQD/SDH1.1", "CserDQD/SDH1.2")
 )
 
-dev.off() 
+pD <- plot_identity_heatmap(
+  matrix_file = "Files/DQD_SDH/align_tree/DQD_SDH_possible_nt.dist_nogaps.tsv",
+  tree_file   = "Files/DQD_SDH/align_tree/DQD_SDH_possible_nt.iqtree.contree",
+  out_png     = "plots/DQD_SDH_possible_nt_identity_heatmap.png",
+  outgroup    = c("CserDQD/SDH1.1", "CserDQD/SDH1.2")
+)
+```
+
+#8 Combine all 4 plots for Figure 2
+
+```{r}
+# Combine for Figure  2
+
+library(patchwork)
+
+
+combined_plot <- 
+  (pA | pC) /
+  (pB | pD) +
+  plot_annotation(tag_levels = "A")
+
+ggsave(
+  "plots/Figure_ABCD_combined.png",
+  combined_plot,
+  width = 18,
+  height = 14,
+  dpi = 300
+)
+
+
 ```
 
 
@@ -857,175 +817,6 @@ summary_table <- map_df(
 
 print(summary_table)
 
-```
-
-#8B Plot the data of Hydrophobicity profile, Uncharged, Acidic, Basic Amino Acids of cpTP and non-cpTP DQD/SDHs 
-
-```{r}
-pub_theme <- theme_minimal(base_size = 12) +
-  theme(
-    panel.grid.minor = element_blank(),
-    panel.grid.major.x = element_blank(),
-    #axis.title = element_text(face = "bold"),
-    axis.text = element_text(color = "black"),
-    plot.title = element_text(
-      face = "bold",
-      size = 12
-    ),
-    legend.title = element_blank(),
-    legend.position = "top",
-    legend.text = element_text(size = 12)
-  )
-
-# ==========================================
-# COLORS
-# ==========================================
-
-my_cols <- c(
-  "cpTP" = "#2E8B57",   # green
-  "non-cp" = "#D95F02" # orange
-)
-
-# ==========================================
-# PANEL A — HYDROPHOBICITY
-# ==========================================
-
-p_hydro <- ggplot(
-  hydro_all,
-  aes(
-    x = pos,
-    y = mean_hydro,
-    color = group
-  )
-) +
-   geom_line(
-  ) +
-  scale_color_manual(values = my_cols) +
-  scale_x_continuous(
-    breaks = seq(0, 80, 10)
-  ) +
-  labs(
-    x = "Amino acid position",
-    y = "Mean hydrophobicity",
-    title = "Hydrophobicity profile"
-  ) +
-  theme_classic() +
-  pub_theme
-
-# ==========================================
-# PANEL B — UNCHARGED AA
-# ==========================================
-
-p_unch <- ggplot(
-  unch_df,
-  aes(
-    x = pos,
-    y = freq * 100,
-    color = group
-  )
-) +
-  geom_line(
-    
-  ) +
-  scale_color_manual(values = my_cols) +
-  scale_x_continuous(
-    breaks = seq(0, 80, 10)
-  ) +
-  labs(
-    x = "Amino acid position",
-    y = "Uncharged residues (%)",
-    title = "Uncharged amino acids"
-  ) +
-  theme_classic() +
-  pub_theme +
-  theme(
-    legend.position = "none"
-  )
-
-# ==========================================
-# PANEL C — ACIDIC AA
-# ==========================================
-
-p_acid <- ggplot(
-  acid_df,
-  aes(
-    x = pos,
-    y = freq * 100,
-    color = group
-  )
-) +
-   geom_line(
-  ) +
-  scale_color_manual(values = my_cols) +
-  scale_x_continuous(
-    breaks = seq(0, 80, 10)
-  ) +
-  labs(
-    x = "Amino acid position",
-    y = "Acidic residues (%)",
-    title = "Acidic amino acids"
-  ) +
-  theme_classic() +
-  pub_theme +
-  theme(
-    legend.position = "none"
-  )
-
-# ==========================================
-# PANEL D — BASIC AA
-# ==========================================
-
-p_base <- ggplot(
-  basic_df,
-  aes(
-    x = pos,
-    y = freq * 100,
-    color = group
-  )
-) +
-   geom_line(
-  ) +
-  scale_color_manual(values = my_cols) +
-  scale_x_continuous(
-    breaks = seq(0, 80, 10)
-  ) +
-  labs(
-    x = "Amino acid position",
-    y = "Basic residues (%)",
-    title = "Basic amino acids"
-  ) +
-  theme_classic() +
-  pub_theme +
-  theme(
-    legend.position = "none"
-  )
-
-
-# ==========================================
-# COMBINE
-# ==========================================
-
-final_plot <- p_hydro / p_unch / p_acid / p_base +
-  plot_annotation(
-    title = "",
-    theme = theme(
-      plot.title = element_text(
-        face = "bold",
-        size = 20,
-        hjust = 0.5
-      )
-    )
-  )
-
-final_plot
-
-ggsave(
-  "plots/cpTP_characteristics.png",
-  final_plot,
-  width = 10,
-  height = 15,
-  dpi = 600
-)
 ```
 
 
@@ -1472,4 +1263,438 @@ ggsave("plots/Key_AA_per_clade.png", p2,
 
 ```
 
+
+```{r}
+
+if (!requireNamespace("devtools", quietly = TRUE)) install.packages("devtools")
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+
+# Install if needed
+# devtools::install_github("YuLab-SMU/ggmsa")
+# BiocManager::install(c("Biostrings"))
+# install.packages(c("ggplot2", "readr"))
+
+library(ggmsa)
+library(Biostrings)
+library(ggplot2)
+library(readr)
+library(ape)
+library(dplyr)
+library(readxl)
+
+# INPUT FILES
+
+alignment_file <- "Files/Alignment/ClustalO.aln.fa"
+tree_file <- "Files/Alignment/ClustalO.aln.fa.contree"
+
+# Output files
+reordered_fasta_out <- "Files/Alignment/ClustalO.aln.reordered.fa"
+mapping_out <- "Files/Alignment/AtSDH_alignment_column_map.csv"
+table_out <- "Files/Alignment/AtSDH_position_extraction_table.csv"
+
+# Reference sequence name
+reference_name <- "AtSDH"
+
+# AtSDH residue positions of interest
+domains <- list(
+  DQD = c(124, 126, 128, 155, 214, 241, 269, 271, 279, 291, 304),
+  SDH_substrate = c( 336, 338,  381, 385, 406, 407, 422, 423, 550, 578, 582),
+  SDH_cofactor = c(483, 484, 485, 488, 522, 523)
+)
+
+# Number of visual spacer columns between blocks
+spacer <- 3
+
+# METADATA FOR DOTS (containd data on cpTP presence, QDH and GA-forming activity)
+
+meta_file <- "Files/Alignment/metadata_fig_4.xlsx"
+meta_raw <- read_xlsx(meta_file)
+
+#rename columns for simplicity
+colnames(meta_raw) <- c("seq_id", "gallate", "qdh", "cp")
+
+meta <- meta_raw %>%
+  mutate(
+    gallate = as.numeric(gallate) > 0,
+    qdh = as.numeric(qdh) > 0,
+    cp = as.numeric(cp) > 0
+  )
+
+  clade_map <- bind_rows(
+  data.frame(seq_id = c("CserDQD/SDH1.2","CserDQD/SDH1.1", "EgQDH2", "Poptr4" ), clade = "I"),
+  data.frame(seq_id = c("CserDQD/SDH5",  "SlQDH", "NtSDH2", "CasSDH1", "CsDQD/SDHb", "VvSDH2",
+                         "Poptr3", "Poptr2",  "EgQDH1", "EcDQD/SDH4b", "EcDQD/SDH4a" ), clade = "II"),
+  data.frame(seq_id = c("AtSDH", "BnapusQDH", "BrapaQDH" ), clade = "III"),
+  data.frame(seq_id = c("Poptr1",  "PgSDH1", "EgDQD/SDH1","EcDQD/SDH1", "FvSDH4","FvSDH3", "JrSDH",  
+                        "VvSDH1", "CserDQD/SDH2", "CsDQD/SDHa", "SlSDH1", "NtSDH1"), clade = "IV"),
+  data.frame(seq_id = c("VvSDH4", "PgSDH4", "EgDQD/SDH2", "EcDQD/SDH2", "FvSDH2","Poptr5", "CserDQD/SDH4", "CasSDH3", "CsDQD/SDHd"), clade = "V"),
+  data.frame(seq_id = c("CserDQD/SDH3", "CasSDH2", "CsDQD/SDHc", "VvSDH3", "PgSDH3_1","PgSDH3a_2", "PgSDH3a_1", 
+                        "FvSDH1", "PgSDH3_2", "EgDQD/SDH3", "EcDQD/SDH3"), clade = "VI")
+)
+
+# HELPERS
+read_tree_tip_order <- function(tree_file, outgroup) {
+  tree <- read.tree(tree_file)
+
+  if (!is.monophyletic(tree, outgroup)) {
+    stop("Outgroup is not monophyletic.")
+  }
+
+  tree <- root(tree, outgroup = outgroup, resolve.root = TRUE)
+  tree <- ladderize(tree, right = FALSE)
+
+  plot(tree, plot = FALSE)
+  pp <- get("last_plot.phylo", envir = .PlotPhyloEnv)
+
+  tree$tip.label[order(pp$yy[1:length(tree$tip.label)], decreasing = TRUE)]
+}
+
+build_reference_map <- function(aligned_seq, ref_name = "AtSDH") {
+  chars <- strsplit(as.character(aligned_seq), "")[[1]]
+
+  ref_pos <- integer()
+  aln_col <- integer()
+
+  aa_counter <- 0
+  for (i in seq_along(chars)) {
+    if (chars[i] != "-") {
+      aa_counter <- aa_counter + 1
+      ref_pos <- c(ref_pos, aa_counter)
+      aln_col <- c(aln_col, i)
+    }
+  }
+
+  data.frame(
+    reference = ref_name,
+    residue_number = ref_pos,
+    alignment_column = aln_col,
+    stringsAsFactors = FALSE
+  )
+}
+
+extract_positions_by_reference <- function(seqs, ref_map, positions, group_name) {
+  aln_cols <- ref_map$alignment_column[match(positions, ref_map$residue_number)]
+
+  seq_chars <- as.character(seqs)
+
+  residues_per_seq <- lapply(seq_chars, function(s) {
+    substring(s, aln_cols, aln_cols)
+  })
+
+  residue_mat <- do.call(rbind, residues_per_seq)
+  colnames(residue_mat) <- paste0("AA", positions)
+
+  grouped <- apply(residue_mat, 1, paste0, collapse = "")
+
+  out <- as.data.frame(residue_mat, stringsAsFactors = FALSE)
+  out[[group_name]] <- grouped
+  out
+}
+
+make_combined_subset <- function(seqs, ref_map, domains, spacer = 3, spacer_char = "-") {
+  seq_chars <- as.character(seqs)
+  seq_names <- names(seqs)
+
+  combined_strings <- character(length(seq_chars))
+  axis_labels <- character()
+  spacer_positions <- integer()
+  domain_ranges <- list()
+
+  current_pos <- 0
+
+  for (i in seq_along(domains)) {
+    ref_positions <- domains[[i]]
+    aln_cols <- ref_map$alignment_column[match(ref_positions, ref_map$residue_number)]
+
+    block_strings <- vapply(seq_chars, function(s) {
+      paste0(substring(s, aln_cols, aln_cols), collapse = "")
+    }, character(1))
+
+    if (i == 1) {
+      combined_strings <- block_strings
+      start_pos <- 1
+    } else {
+      spacer_string <- paste(rep(spacer_char, spacer), collapse = "")
+      combined_strings <- paste0(combined_strings, spacer_string, block_strings)
+
+      new_spacers <- (current_pos + 1):(current_pos + spacer)
+      spacer_positions <- c(spacer_positions, new_spacers)
+
+      axis_labels <- c(axis_labels, rep("", spacer))
+      current_pos <- current_pos + spacer
+      start_pos <- current_pos + 1
+    }
+
+    axis_labels <- c(axis_labels, as.character(ref_positions))
+    end_pos <- start_pos + length(ref_positions) - 1
+    domain_ranges[[names(domains)[i]]] <- c(start_pos, end_pos)
+
+    current_pos <- end_pos
+  }
+
+  aa_set <- AAStringSet(combined_strings)
+  names(aa_set) <- seq_names
+
+  list(
+    aa_set = aa_set,
+    axis_labels = axis_labels,
+    spacer_positions = spacer_positions,
+    domain_ranges = domain_ranges
+  )
+}
+
+
+# LOAD DATA
+
+protein_sequences <- readAAStringSet(alignment_file)
+tip_order <- read_tree_tip_order(tree_file, outgroup = outgroup_tips)
+
+# Keep only tree tips found in alignment, in tree order
+tip_order_found <- tip_order[tip_order %in% names(protein_sequences)]
+
+# Add any alignment sequences not found in the tree at the end
+tip_order_missing <- setdiff(names(protein_sequences), tip_order_found)
+final_order <- c(tip_order_found, tip_order_missing)
+
+protein_sequences_reordered <- protein_sequences[match(final_order, names(protein_sequences))]
+
+# Save reordered FASTA
+writeXStringSet(protein_sequences_reordered, filepath = reordered_fasta_out)
+
+
+# MAP AtSDH RESIDUE NUMBERING TO ALIGNMENT COLUMNS
+
+if (!(reference_name %in% names(protein_sequences_reordered))) {
+  stop(paste("Reference sequence", reference_name, "not found in alignment."))
+}
+
+ref_seq <- protein_sequences_reordered[[reference_name]]
+ref_map <- build_reference_map(ref_seq, ref_name = reference_name)
+
+write_csv(ref_map, mapping_out)
+
+# EXTRACT RESIDUES FOR ALL SEQUENCES
+
+all_positions <- unlist(domains, use.names = FALSE)
+all_positions <- unique(all_positions)
+
+extraction_df <- data.frame(
+  Sequence = names(protein_sequences_reordered),
+  stringsAsFactors = FALSE
+)
+
+for (group_name in names(domains)) {
+  tmp <- extract_positions_by_reference(
+    seqs = protein_sequences_reordered,
+    ref_map = ref_map,
+    positions = domains[[group_name]],
+    group_name = group_name
+  )
+
+  aa_cols <- paste0("AA", domains[[group_name]])
+  aa_cols <- aa_cols[!aa_cols %in% names(extraction_df)]
+
+  if (length(aa_cols) > 0) {
+    extraction_df[aa_cols] <- tmp[aa_cols]
+  }
+  extraction_df[[group_name]] <- tmp[[group_name]]
+}
+
+write_csv(extraction_df, table_out)
+
+
+# MAKE PLOTTING SUBSET WITH VISUAL SPACERS
+
+res <- make_combined_subset(
+  seqs = protein_sequences_reordered,
+  ref_map = ref_map,
+  domains = domains,
+  spacer = spacer,
+  spacer_char = "-"
+)
+
+aa_set <- res$aa_set
+writeXStringSet(aa_set, filepath = "Files/Alignment/combined_subset_alignment.fasta")
+
+
+# PLOT basic ggmsa 
+
+p <- ggmsa(
+  aa_set,
+  color = "Chemistry_AA",
+  font = "DroidSansMono",
+  char_width = 0.6,
+  seq_name = TRUE
+) +
+  scale_x_continuous(
+  breaks = seq_along(res$axis_labels),
+  labels = NULL,
+  position = "top"
+) + 
+  theme(
+  axis.text.x = element_text(size = 14, angle = 90, vjust = 0.5, hjust = -1.6),
+  axis.text.y = element_text(size = 14),
+  axis.ticks.x = element_blank(),
+  panel.grid = element_blank()
+)
+
+
+# paint spacer columns white so they look empty
+for (pos in res$spacer_positions) {
+  p <- p + annotate(
+    "rect",
+    xmin = pos - 0.5, xmax = pos + 0.5,
+    ymin = -Inf, ymax = Inf,
+    fill = "white",
+    colour = NA
+  )
+}
+
+
+# optional domain titles
+domain_centers <- sapply(res$domain_ranges, mean)
+
+p <- p +
+  annotate("text", x = domain_centers["DQD"], y = length(aa_set) + 5,
+           label = "DQD domain", size = 5) +
+  annotate("text", x = domain_centers["SDH_substrate"], y = length(aa_set) + 5,
+           label = "SDH domain 
+(substrate)", size = 5) +
+  annotate("text", x = domain_centers["SDH_cofactor"], y = length(aa_set) + 5,
+           label = "SDH domain 
+(cofactor)", size = 5) +
+  coord_cartesian(clip = "off") +
+  theme(
+    plot.margin = margin(20, 20, 20, 20)
+  )
+
+
+highlight_numbers <- c(214, 241, 338, 385, 423, 483, 484, 485)
+label_df <- data.frame(
+  x = seq_along(res$axis_labels),
+  label = res$axis_labels,
+  stringsAsFactors = FALSE
+)
+
+label_df$is_highlight <- label_df$label %in% highlight_numbers
+
+y_labels <- length(aa_set) + 2
+
+p <- p +
+  geom_text(
+    data = label_df,
+    aes(x = x, y = y_labels, label = label),
+    inherit.aes = FALSE,
+    angle = 90,
+    size = 5,
+    colour = ifelse(label_df$is_highlight, "red", "black"),
+    fontface = ifelse(label_df$is_highlight, "bold", "plain")
+  )
+
+
+# get exact row y positions from ggmsa plot
+
+row_map <- data.frame(
+  seq_id = names(aa_set),
+  y = length(aa_set):1,
+  stringsAsFactors = FALSE
+)
+
+
+#annotation
+ann <- row_map %>%
+  left_join(meta, by = "seq_id") %>%
+  left_join(clade_map, by = "seq_id") %>%
+  mutate(
+    gallate = ifelse(is.na(gallate), FALSE, gallate),
+    qdh = ifelse(is.na(qdh), FALSE, qdh),
+    cp = ifelse(is.na(cp), FALSE, cp)
+  )
+
+clade_centers <- ann %>%
+  filter(!is.na(clade)) %>%
+  group_by(clade) %>%
+  summarise(y = mean(y), .groups = "drop")
+
+clade_bounds <- ann %>%
+  filter(!is.na(clade)) %>%
+  group_by(clade) %>%
+  summarise(
+    ymin = min(y) - 0.45,
+    ymax = max(y) + 0.45,
+    ymid = mean(y),
+    .groups = "drop"
+  )
+
+# x positions for metadata columns, placed to the left of the sequence names
+x_ga    <- -7.5
+x_qdh   <- -5.5
+x_cp    <- -3.5
+x_clade <- -1.2
+x_clade_bracket <- -1.8
+
+
+p2 <- p +
+  coord_cartesian(
+  xlim = c(-7, length(res$axis_labels) + 0.5), #move 
+    clip = "off"
+  ) +
+  theme(
+    plot.margin = margin(20, 20, 20, 40)
+  ) +
+  annotate("text", x = x_ga,    y = max(ann$y) + 1.8, label = "GA",    fontface = "bold", size = 5) +
+  annotate("text", x = x_qdh,   y = max(ann$y) + 1.8, label = "QDH",   fontface = "bold", size = 5) +
+  annotate("text", x = x_cp,    y = max(ann$y) + 1.8, label = "Cp",    fontface = "bold", size = 5) +
+  annotate("text", x = x_clade, y = max(ann$y) + 1.8, label = "Clade", fontface = "bold", size = 5) +
+  geom_point(
+    data = ann %>% filter(gallate),
+    aes(x = x_ga, y = y),
+    inherit.aes = FALSE,
+    colour = "#E78AC3", size = 3.5
+  ) +
+  geom_point(
+    data = ann %>% filter(qdh),
+    aes(x = x_qdh, y = y),
+    inherit.aes = FALSE,
+    colour = "#4C78A8", size = 3.5
+  ) +
+  geom_point(
+    data = ann %>% filter(cp),
+    aes(x = x_cp, y = y),
+    inherit.aes = FALSE,
+    colour = "#4DAF4A", size = 3.5
+  ) +
+  geom_segment(
+  data = clade_bounds,
+  aes(x = x_clade_bracket, xend = x_clade_bracket, y = ymin, yend = ymax),
+  inherit.aes = FALSE,
+  linewidth = 0.5
+) +
+  geom_segment(
+  data = clade_bounds,
+  aes(x = x_clade_bracket, xend = x_clade_bracket + 0.22, y = ymax, yend = ymax),
+  inherit.aes = FALSE,
+  linewidth = 0.5
+) +
+  geom_segment(
+  data = clade_bounds,
+  aes(x = x_clade_bracket, xend = x_clade_bracket + 0.22, y = ymin, yend = ymin),
+  inherit.aes = FALSE,
+  linewidth = 0.5
+) +
+  geom_text(
+  data = clade_bounds,
+  aes(x = x_clade, y = ymid, label = clade),
+  inherit.aes = FALSE,
+  fontface = "bold",
+  size = 4.2
+)
+
+print(p2)
+
+ggsave("plots/Key_AA_per_clade_new.png", p2,
+       width = 12, height = 12, dpi = 300, bg = "white")
+
+
+```
 
