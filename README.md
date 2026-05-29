@@ -107,6 +107,8 @@ busco --offline -i final.clust_cds_longest_iso.fasta --lineage_dataset busco_db/
 
 ```
 
+ BUSCO results were summarized in busco.csv file and visualized using code in  #1 Plotting BUSCO results chunk available at Analysis.Rmd file.
+
 2) As a second approach, both SR and LR reads were mapped back to the assembled transcriptome using Minimap2, and the overall mapping rate 
 was calculated. 
 
@@ -245,6 +247,8 @@ Protein sequences were send with parameters:
 Sp: ath, aly, gmx, gsj, fve, pop, jre, vvi, sly, nta, osa, zma, dct, rcn, pper, egr, brp, cit, tcc, qsu, oeu, bvg, dosa, ppp, peq, aof, atr, 
 cre, mng, apro, olu, cme, gsl, ccp, psom, ini, peu, rcu
 
+KEGG pathways were visualized using chunk #3 Analyse KEGG pathway and create a figure available at Analysis.Rmd file
+
 
 **Annotation against KOG/COG**
 
@@ -263,6 +267,7 @@ The resulted file is called  final.clust_proteins_longest_iso.emapper.annotation
 annotations. Because GO terms are always redundant, on the next step we parse GO terms and extract them using python script GO_analysis_from_eggnogg_data.py
 For GO terms, filtering for the highest GO level for each transcript was performed, to avoid exessive and unnesessary data.
 
+Data from GO annotation may be visualized using #2 Analyse GO annotation and create a figure chunk available at Analysis.Rmd file
 
 **Addition of data to gff3**
  
@@ -275,9 +280,13 @@ python gff3_annotation.py
 
 ```
 
-The priority of annotation was folowing: RefSeq > UniProt > NR
+The priority of annotation was folowing: RefSeq > UniProt > NR with addition available GO terms.
 
-After annotation, the basic analysis and plots were created. The code used are present at Analysis.Rmd file
+After annotation, the basic analysis and plots were created. The code used are present at Analysis.Rmd file:
+Summary of the annotation tools - chunk #4 Sum of annotation results in general, from resulted best_hits, etc files
+
+Because the priority of annotation was RefSeq > UniProt > NR, not all data could be used in final gff3 file.
+To count, we use the code  #5 Count annotions in final gff3 file. To plot the result we used chunk #6 Plot the counts of annotions in final gff3 file
 
 
 # Extracting 3-dehydroquinate dehydratase/shikimate dehydrogenases 
@@ -377,10 +386,12 @@ samtools index -M  *sorted.bam
 ```
 After that, every DQD/SDH variant were manually inspected. Due to the inconsistent nomenclature of DQD/SDH genes among plant species, 
 identifiers (DQD/SDH1–5)  were assigned according to their occurrence in the annotation. One alternatively spliced isoform generated 
-through intron retention was identified. Examples of IGV screens are saved in IGV folder.
+through intron retention was identified. Examples of IGV screens are saved in IGV folder
 
+Therefore, the sequence from 1586 to 2031 bp was removed and translated. As the CDS	of the initial variant was located in 131-1633 bp,
+the overlap inside CDS was 1586–1633 = 48 bp (16 amino acids removed near the C-terminus without frameshift)
+Run script for that (for only first sequence in file)
 
-Therefore, the sequence from 1586 to 2031 bp was removed and translated. Run script for that (for only first sequence in file)
 And save result
 
 ```bash
@@ -404,26 +415,34 @@ TransDecoder.Predict -t  Files/DQD_SDH/DQD_SDH_possible_nt.spliced_1586-2031.fas
 
 The TransDecoder ORF was classified as 5′ partial because start-site refinement failed due to insufficient training data. Therefore, the 3′ CDS boundary predicted by TransDecoder 
 was retained, while the 5′ CDS boundary was manually curated based on the presence of an upstream ATG, correct reading frame, absence of premature stop codons, and similarity 
-to homologous DQD/SDH proteins.
+to homologous DQD/SDH proteins. Also, NCBI ORFfinder was used for additional check.
 The script was used to extract 5’UTR/CDS/3’UTR from the spliced transcript, translate CDS to protein, and write all outputs plus QC checks to files. 
 
 ```bash
 python bin/evaluate_utrs_cds_transdecoder.py \
   -i Files/DQD_SDH/DQD_SDH_possible_nt.spliced_1586-2031.fasta \
-  --cds-start 131 --cds-end 1651 \
+  --cds-start 131 --cds-end 1627 \
   -o Files/DQD_SDH/TransDecoder_eval \
   --trim-cds --only-first
   
 ```
+The resulted protein sequence was named as DQD/SDH1.1 variant, while DQD/SDH1.2 was used for the variant with intron retention
 
 On the next step, DQD/SDH proteins properties were analyzed.
 
 # Analysis of DQD/SDH proteins properties
 
 
+
+Stability of C. sericea DQD/SDHs predicted from amino acid sequence using ProtParam (https://web.expasy.org/protparam/) 
+
 Code align DQD_SDH_possible_pr.fasta and DQD_SDH_possible_nt.fasta with Clustal Omega
 Compute gap-ignored p-distance matrices from the alignments (ignores columns with - in either seq)
 Build trees with IQ-TREE (uses iqtree2 if available, else iqtree)
+
+Percent identity (%) for nucleotide  and amino acid sequences of C. sericea DQD/SDHs was calculated based on a distance matrixes without with 
+gaps generated from Clustal Omega alignments using align_distance_iqtree.py script
+
 
 ```bash
 python3 bin/align_distance_iqtree.py \
@@ -431,11 +450,17 @@ python3 bin/align_distance_iqtree.py \
   --nt-fasta Files/DQD_SDH/DQD_SDH_possible_nt.fasta \
   --outdir Files/DQD_SDH/align_tree \
   --threads 8
+  
 ```
 
-For the multiple DQD/SDHs of dicot species protein secuence alignment was performed with Clustal Omega and tree was build using iqtree
+The R code for percent identity (%) calculation is present in chunk #7 in Analysis.Rmd. Data are saved as 
+DQD_SDH_possible_pr.dist_nogaps.tsv and DQD_SDH_possible_nt.dist_nogaps.tsv and visualized using tree data and chunk #8 in Analysis.Rmd
+
+The multiple DQD/SDHs of dicot species protein sequence alignment was performed with Clustal Omega and tree was build using iqtree
+with. parameters -m MFP -bb 1000 -nt 10
 
 ```bash
+
 python3 bin/align_and_tree_one.py \
   -i Files/Alignment/For_alignment.fasta \
   -o Files/Alignment/ClustalO.aln.fa \
@@ -444,19 +469,24 @@ python3 bin/align_and_tree_one.py \
 
 ```
 
+# Prediction of chloroplast transit peptide presence 
 
 
-# Visualization of data
+Subcellular localization of DQD/SDH variants was predicted using multiple tools, including WoLF PSORT, TargetP, DeepLoc 2.0, PredSL, and ChloroP 
+priority was given to the predictions generated by TargetP-2.0 and PredSL, as these tools are more recent and are based on machine learning approaches,
+but the combination of 2 or more positive results from the tools were also considered as positive cpTP signal. 
 
-The code chunks for data visualization are saved in Analysis.Rmd
+Next, we additionally analyzed the composition of the first 50 amino acid residues in cpTP-containing and non-cpTP DQD/SDHs of dicot species using sequence alignment.
+sequences - Logo plot of the relative occurrence and bits (express the total height of each AA position corresponds to the conservation in that position) of the AA in the N-terminal 
+was created using corresponding chunk #9A in Analysis.Rmd. The mean percent of uncharged, acidic, basic amino acids and proline were calculated using chunk #9B in Analysis.Rmd
 
-1. BUSCO results were summarized in busco.csv file and visualized using code in  #1 Plotting BUSCO results chunk
-2. Data from GO annotation may be visualized using #2 Analyse GO annotation and create a figure chunk
-3. KEGG pathways - chunk #3 Analyse KEGG pathway and create a figure
-4. Summary of the annotation tools - chunk #4 Sum of annotation results in general, from resulted best_hits, etc files
-5. Because the priority of annotation was RefSeq > UniProt > NR, not all data could be used in final gff3 file.
-To count, we use the code  #5 Count annotions in final gff3 file
-6. Plot the result - chunk #6 Plot the counts of annotions in final gff3 file
+
+# Phylogenetic study and the comparison of key amino acids in the 3-DHD and SDH domains
+
+Data from multiple DQD/SDHs of dicot species protein sequence alignment and phylogenetic tree, which were received at the previous step were used for 
+the comparison of key amino acids in the 3-DHD and SDH domains depends on clades. The code in chunk #10 was used for extraction of residue positions of interest based on
+AtSDH sequence, sequence reordering, annotation of data based on cpTP presence, QDH and GA-forming activity and visualization based on phylogenetic tree data.
+
 
 
 **Data Archiving Statement**
